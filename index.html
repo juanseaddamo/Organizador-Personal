@@ -696,8 +696,14 @@ let videos=[];
 function ytId(u){const m=u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);if(m)return m[1];const b=u.trim().match(/^[A-Za-z0-9_-]{11}$/);return b?b[0]:null;}
 function thumbNext(img){try{let i=+img.dataset.i+1;const urls=JSON.parse(img.dataset.urls);if(i<urls.length){img.dataset.i=i;img.src=urls[i];}else{img.style.display='none';}}catch(e){img.style.display='none';}}
 async function fetchTitle(url){
-  // noembed.com sí manda cabeceras CORS (el oembed de YouTube no)
+  // 1) noembed: manda cabeceras CORS y NO es de Google (anda incluso si la red bloquea a Google)
   try{const r=await fetch('https://noembed.com/embed?url='+encodeURIComponent(url));if(r.ok){const j=await r.json();if(j&&j.title)return j.title;}}catch(e){}
+  // 2) respaldo: oembed oficial de YouTube a través de un proxy CORS que lo busca del lado del servidor
+  try{
+    const o='https://www.youtube.com/oembed?format=json&url='+encodeURIComponent(url);
+    const r=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(o));
+    if(r.ok){const j=await r.json();if(j&&j.contents){try{const d=JSON.parse(j.contents);if(d&&d.title)return d.title;}catch(e){}}}
+  }catch(e){}
   return '';
 }
 async function loadVideos(){videos=(await store.get('videos'))||[];renderVideos();}
