@@ -203,6 +203,8 @@ function showLogin(){
   }
 
   btn.addEventListener('click',submit);
+  const demoBtn=o.querySelector('#demoEnter');
+  if(demoBtn) demoBtn.addEventListener('click',()=>{ if(mode!=='login')setMode('login'); email.value=DEMO_EMAIL; pass.value='123456789'; submit(); });
   toggle.addEventListener('click',e=>{e.preventDefault(); setMode(mode==='login'?'signup':'login'); email.focus();});
   [email,pass,pass2].forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter')submit();}));
   email.focus();
