@@ -9,10 +9,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* tema oscuro estilo editor de código (GitHub dark). El acento sale de --amber: cambialo por otro hex y recolorea toda la app */
-    --bg:#0d1117;--surface:#161b22;--surface-2:#21262d;--line:#30363d;--line-soft:#21262d;
-    --text:#e6edf3;--muted:#8b949e;--muted-dim:#6e7681;
-    --amber:#58a6ff;--amber-dim:rgba(88,166,255,.12);--accent-line:rgba(88,166,255,.4);--green:#3fb950;
+    /* tema terminal: negro-verdoso + acento verde fósforo. El acento sale de --amber: cambialo por otro hex y recolorea toda la app */
+    --bg:#0a0f0c;--surface:#111a15;--surface-2:#17231c;--line:#233029;--line-soft:#17231c;
+    --text:#d3e0d6;--muted:#7d938a;--muted-dim:#5b6d63;
+    --amber:#39d353;--amber-dim:rgba(57,211,83,.12);--accent-line:rgba(57,211,83,.38);--green:#2ea043;
     --radius:16px;--mono:'JetBrains Mono',ui-monospace,monospace;
     --disp:'Space Grotesk',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif;
   }
@@ -20,7 +20,7 @@
   [hidden]{display:none!important}
   html,body{margin:0}
   body{
-    background:radial-gradient(1200px 500px at 80% -10%, rgba(88,166,255,.06), transparent 60%),var(--bg);
+    background:radial-gradient(1200px 500px at 80% -10%, rgba(57,211,83,.06), transparent 60%),var(--bg);
     color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased;line-height:1.45;min-height:100vh;
   }
   .wrap{max-width:1040px;margin:0 auto;padding:28px 20px 80px}
