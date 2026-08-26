@@ -301,15 +301,106 @@
 </div>
 
 <script>
-/* ---------- almacenamiento (localStorage · guarda en tu propio dispositivo) ---------- */
+/* ---------- almacenamiento (localStorage como cache + Supabase para sync entre dispositivos) ---------- */
 const mem={};
 const store={
   async get(k){
     try{ const r=localStorage.getItem('org:'+k); if(r!==null) return JSON.parse(r); }catch(e){}
     return (k in mem)?mem[k]:null;
   },
-  async set(k,v){ mem[k]=v; try{ localStorage.setItem('org:'+k,JSON.stringify(v)); }catch(e){} flashSaved(); }
+  async set(k,v){ mem[k]=v; try{ localStorage.setItem('org:'+k,JSON.stringify(v)); }catch(e){} flashSaved(); schedulePush(); }
 };
+
+/* ---------- Supabase (sync entre dispositivos) ---------- */
+const SUPABASE_URL='https://butkdtyyekaqjwxlsrfu.supabase.co';
+const SUPABASE_KEY='sb_publishable_J8jK_Vwy7qcFANilxbzFhg_yB1jQwax';
+let sb=null, sbUser=null, booted=false, loginShown=false;
+let _readyResolve; const ready=new Promise(r=>_readyResolve=r);
+
+// baja el estado de la nube y lo vuelca a mem + localStorage
+async function pullCloud(){
+  try{
+    const {data,error}=await sb.from('estado').select('data').eq('user_id',sbUser.id).maybeSingle();
+    if(error){console.warn('pullCloud',error);return;}
+    if(data && data.data && Object.keys(data.data).length){
+      const obj=data.data;
+      for(const k in obj){ mem[k]=obj[k]; try{localStorage.setItem('org:'+k,JSON.stringify(obj[k]));}catch(e){} }
+    }else{
+      await pushCloud(); // primera vez: subo lo que ya tengo local
+    }
+  }catch(e){console.warn('pullCloud',e);}
+}
+
+// sube TODO el estado (una fila por usuario) a la nube
+async function pushCloud(){
+  if(!sb||!sbUser) return;
+  const obj={};
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key && key.indexOf('org:')===0){ try{obj[key.slice(4)]=JSON.parse(localStorage.getItem(key));}catch(e){} }
+    }
+    const {error}=await sb.from('estado').upsert({user_id:sbUser.id,data:obj,updated_at:new Date().toISOString()});
+    if(error) console.warn('pushCloud',error);
+  }catch(e){console.warn('pushCloud',e);}
+}
+
+let _pushT;
+function schedulePush(){ if(!sb||!sbUser) return; clearTimeout(_pushT); _pushT=setTimeout(pushCloud,800); }
+
+async function afterAuth(){
+  hideLogin();
+  await pullCloud();
+  _readyResolve();
+  bootApp();
+}
+
+async function initSupabase(){
+  try{
+    const mod=await import('https://esm.sh/@supabase/supabase-js@2');
+    sb=mod.createClient(SUPABASE_URL,SUPABASE_KEY);
+    sb.auth.onAuthStateChange(async (event,session)=>{
+      if(session){ sbUser=session.user; await afterAuth(); }
+      else if(event==='INITIAL_SESSION'){ showLogin(); }
+    });
+  }catch(e){
+    console.warn('Supabase no disponible, modo local:',e);
+    _readyResolve(); bootApp(); // sin red: arranca solo con localStorage
+  }
+  // red de seguridad: si en 6s no arrancó ni pidió login, arranco local
+  setTimeout(()=>{ if(!booted && !loginShown){ _readyResolve(); bootApp(); } },6000);
+}
+
+/* ---------- pantalla de login (magic link por email) ---------- */
+function showLogin(){
+  if(loginShown||booted) return; loginShown=true;
+  const o=document.createElement('div'); o.id='loginOverlay';
+  o.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);padding:20px;';
+  o.innerHTML='<div style="background:#161616;border:1px solid #2a2a2a;border-radius:16px;padding:28px 24px;max-width:340px;width:100%;text-align:center;color:#eee;font-family:inherit;">'+
+    '<h2 style="margin:0 0 6px;font-size:19px;">Tu organizador</h2>'+
+    '<p style="margin:0 0 18px;font-size:13px;color:#9a9a9a;line-height:1.5;">Ingresá con tu email para sincronizar entre tus dispositivos. Te llega un link, sin contraseña.</p>'+
+    '<input id="loginEmail" type="email" inputmode="email" autocomplete="email" placeholder="tu@email.com" style="width:100%;box-sizing:border-box;padding:11px 12px;border-radius:10px;border:1px solid #333;background:#0e0e0e;color:#eee;font-size:15px;margin-bottom:10px;">'+
+    '<button id="loginBtn" style="width:100%;padding:11px;border-radius:10px;border:0;background:#e6e6e6;color:#111;font-size:15px;font-weight:600;cursor:pointer;">Enviarme el link</button>'+
+    '<div id="loginMsg" style="margin-top:12px;font-size:12.5px;color:#9a9a9a;min-height:16px;line-height:1.4;"></div>'+
+    '</div>';
+  document.body.appendChild(o);
+  const email=o.querySelector('#loginEmail'), btn=o.querySelector('#loginBtn'), msg=o.querySelector('#loginMsg');
+  async function send(){
+    const v=(email.value||'').trim();
+    if(!/.+@.+\..+/.test(v)){ msg.textContent='Poné un email válido.'; return; }
+    btn.disabled=true; msg.style.color='#9a9a9a'; msg.textContent='Enviando…';
+    try{
+      const {error}=await sb.auth.signInWithOtp({email:v,options:{emailRedirectTo:location.origin+location.pathname}});
+      if(error){ msg.style.color='#e88'; msg.textContent='Error: '+error.message; btn.disabled=false; }
+      else{ msg.style.color='#8ec99a'; msg.textContent='Listo. Revisá tu mail y abrí el link desde este dispositivo.'; }
+    }catch(e){ msg.style.color='#e88'; msg.textContent='Error de conexión.'; btn.disabled=false; }
+  }
+  btn.addEventListener('click',send);
+  email.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+  email.focus();
+}
+function hideLogin(){ loginShown=false; const o=document.getElementById('loginOverlay'); if(o) o.remove(); }
+async function logout(){ try{ await sb.auth.signOut(); }catch(e){} location.reload(); }
 let saveTimer;
 function flashSaved(){const n=document.getElementById('savenote');n.classList.add('show');clearTimeout(saveTimer);saveTimer=setTimeout(()=>n.classList.remove('show'),1200);}
 let _idc=0; function genId(){return 'x'+Date.now().toString(36)+(_idc++).toString(36)+Math.random().toString(36).slice(2,5);}
@@ -329,7 +420,7 @@ document.getElementById('datebar').textContent=DIAS[dow]+' '+now.getDate()+' '+M
 
 /* ---------- nombre de usuario (editable, se guarda en el navegador) ---------- */
 const _uname=document.getElementById('uname');
-(async()=>{const n=await store.get('username');if(n)_uname.textContent=n;})();
+(async()=>{await ready;const n=await store.get('username');if(n)_uname.textContent=n;})();
 function _saveName(){const v=(_uname.textContent||'').replace(/\s+/g,' ').trim().slice(0,40);store.set('username',v);}
 let _uT;_uname.addEventListener('input',()=>{clearTimeout(_uT);_uT=setTimeout(_saveName,300);});
 _uname.addEventListener('blur',()=>{const v=(_uname.textContent||'').replace(/\s+/g,' ').trim().slice(0,40);_uname.textContent=v;_saveName();});
@@ -661,12 +752,24 @@ document.querySelectorAll('nav.tabs button').forEach(btn=>{
 });
 
 /* ---------- init ---------- */
-(async function(){
+async function bootApp(){
+  if(booted) return; booted=true;
   schedule=await store.get('schedule');
   if(!schedule){schedule=buildDefault();await store.set('schedule',schedule);}
   gym=await store.get('gym'); if(!gym||!gym.days||!gym.days.length){gym=buildGym();await store.set('gym',gym);}
   await renderHoy();renderSemana();await loadEst();renderGym();await loadPend();await loadVideos();
-})();
+  // link discreto para cerrar sesión (útil en dispositivos compartidos)
+  if(sb&&sbUser){
+    const f=document.querySelector('footer');
+    if(f && !document.getElementById('logoutLink')){
+      const a=document.createElement('a'); a.id='logoutLink'; a.textContent=' · salir';
+      a.href='#'; a.style.cssText='color:inherit;opacity:.55;text-decoration:none;cursor:pointer;';
+      a.addEventListener('click',e=>{e.preventDefault();logout();});
+      f.appendChild(a);
+    }
+  }
+}
+initSupabase();
 </script>
 </body>
 </html>
