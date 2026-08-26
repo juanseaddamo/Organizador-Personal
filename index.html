@@ -695,7 +695,11 @@ document.getElementById('pendinput').addEventListener('keydown',e=>{if(e.key==='
 let videos=[];
 function ytId(u){const m=u.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);if(m)return m[1];const b=u.trim().match(/^[A-Za-z0-9_-]{11}$/);return b?b[0]:null;}
 function thumbNext(img){try{let i=+img.dataset.i+1;const urls=JSON.parse(img.dataset.urls);if(i<urls.length){img.dataset.i=i;img.src=urls[i];}else{img.style.display='none';}}catch(e){img.style.display='none';}}
-async function fetchTitle(url){try{const r=await fetch('https://www.youtube.com/oembed?url='+encodeURIComponent(url)+'&format=json');if(r.ok){const j=await r.json();return j.title||'';}}catch(e){}return '';}
+async function fetchTitle(url){
+  // noembed.com sí manda cabeceras CORS (el oembed de YouTube no)
+  try{const r=await fetch('https://noembed.com/embed?url='+encodeURIComponent(url));if(r.ok){const j=await r.json();if(j&&j.title)return j.title;}}catch(e){}
+  return '';
+}
 async function loadVideos(){videos=(await store.get('videos'))||[];renderVideos();}
 function renderVideos(){
   const w=document.getElementById('vidlist');w.innerHTML='';
