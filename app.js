@@ -154,7 +154,7 @@ const GYM_RAW=[]; // rutina vacía por defecto
 function buildGym(){return {days:GYM_RAW.map(d=>({id:genId(),name:d[0],exs:d[1].map(e=>({id:genId(),name:e[0],sets:e[1]}))}))};}
 
 /* ---------- estado ---------- */
-let schedule={}, todayChecks={}, est=[], pend=[], gym={days:[]};
+let schedule={}, todayChecks={}, est=[], pend=[], gym={days:[]}, links=[];
 function sortDay(d){schedule[d].sort((a,b)=>mins(a.time)-mins(b.time));}
 function checkSVG(){return '<span class="check"><svg viewBox="0 0 24 24" fill="none" stroke-width="3.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>';}
 function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -411,6 +411,42 @@ function addVideo(){
 document.getElementById('vidadd').addEventListener('click',addVideo);
 document.getElementById('vidinput').addEventListener('keydown',e=>{if(e.key==='Enter')addVideo();});
 
+/* ---------- Links (accesos rápidos, por usuario) ---------- */
+const LINKPAL=['var(--c-keyword)','var(--c-func)','var(--c-string)','var(--c-number)','var(--c-class)','var(--c-tag)','var(--c-cyan)','var(--c-indigo)'];
+function normUrl(u){u=(u||'').trim();if(!u)return '';if(!/^https?:\/\//i.test(u))u='https://'+u;return u;}
+async function loadLinks(){links=(await store.get('links'))||[];renderLinks();}
+function renderLinks(){
+  const w=document.getElementById('linklist');w.innerHTML='';
+  if(!links.length){w.innerHTML='<div class="empty">Sin links todavía. Agregá tus accesos rápidos arriba (Teams, Notion, GitHub, WebCampus, UADE Virtual…).</div>';return;}
+  links.forEach((l,idx)=>{
+    const col=LINKPAL[idx%LINKPAL.length];
+    const row=document.createElement('div');row.className='linkrow';
+    row.innerHTML=
+      '<span class="linkdot" style="background:'+col+'"></span>'+
+      '<input class="linkname" value="'+esc(l.label||'')+'" placeholder="Nombre" style="color:'+col+'">'+
+      '<input class="linkurl" value="'+esc(l.url||'')+'" placeholder="https://…">'+
+      '<button class="chip lopen">Abrir ↗</button>'+
+      '<button class="del" title="Borrar" aria-label="Borrar">×</button>';
+    const nameI=row.querySelector('.linkname'), urlI=row.querySelector('.linkurl');
+    nameI.addEventListener('input',()=>{l.label=nameI.value;store.set('links',links);});
+    urlI.addEventListener('input',()=>{l.url=urlI.value.trim();store.set('links',links);});
+    urlI.addEventListener('blur',()=>{urlI.value=normUrl(urlI.value);l.url=urlI.value;store.set('links',links);});
+    row.querySelector('.lopen').addEventListener('click',()=>{const u=normUrl(l.url);if(u)window.open(u,'_blank','noopener');});
+    row.querySelector('.del').addEventListener('click',()=>{links=links.filter(x=>x.id!==l.id);store.set('links',links);renderLinks();});
+    w.appendChild(row);
+  });
+}
+function addLink(){
+  const n=document.getElementById('linkname'), u=document.getElementById('linkurl');
+  const label=(n.value||'').trim(), url=normUrl(u.value);
+  if(!label&&!url)return;
+  links.unshift({id:genId(),label:label||url,url});
+  n.value='';u.value='';store.set('links',links);renderLinks();n.focus();
+}
+document.getElementById('linkadd').addEventListener('click',addLink);
+document.getElementById('linkname').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('linkurl').focus();});
+document.getElementById('linkurl').addEventListener('keydown',e=>{if(e.key==='Enter')addLink();});
+
 /* ---------- tabs ---------- */
 document.querySelectorAll('nav.tabs button').forEach(btn=>{
   btn.addEventListener('click',()=>{
@@ -439,7 +475,7 @@ async function bootApp(){
   if(!schedule){schedule=buildDefault();await store.set('schedule',schedule);}
   gym=await store.get('gym'); if(!gym||!gym.days||!gym.days.length){gym=buildGym();await store.set('gym',gym);}
   notes=(await store.get('notes'))||{};
-  await renderHoy();renderSemana();await loadEst();renderGym();await loadPend();await loadVideos();
+  await renderHoy();renderSemana();await loadEst();renderGym();await loadPend();await loadVideos();await loadLinks();
   wireNote(document.getElementById('todaytag'),()=>dow);
   wireNote(document.getElementById('dnote'),()=>selectedDay);
   // link discreto para cerrar sesión (útil en dispositivos compartidos)

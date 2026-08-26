@@ -31,6 +31,7 @@
     <button role="tab" aria-selected="false" data-tab="estudio">Estudio</button>
     <button role="tab" aria-selected="false" data-tab="gym">Gym</button>
     <button role="tab" aria-selected="false" data-tab="videos">Videos</button>
+    <button role="tab" aria-selected="false" data-tab="links">Links</button>
     <button role="tab" aria-selected="false" data-tab="pend">Pendientes</button>
   </nav>
 
@@ -115,6 +116,16 @@
       <button class="btn" id="vidadd">Agregar</button>
     </div>
     <div id="vidlist"></div>
+  </section>
+
+  <section class="panel" id="panel-links">
+    <p class="lead">Tus accesos rápidos. Poné un nombre y el link; se guardan en tu cuenta y se abren en una pestaña nueva.</p>
+    <div class="addrow">
+      <input type="text" id="linkname" placeholder="Nombre (ej: Notion)" autocomplete="off">
+      <input type="text" id="linkurl" placeholder="https://…" autocomplete="off">
+      <button class="btn" id="linkadd">Agregar</button>
+    </div>
+    <div id="linklist"></div>
   </section>
 
   <section class="panel" id="panel-pend">

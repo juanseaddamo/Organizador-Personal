@@ -183,3 +183,11 @@
   .tag[contenteditable]:hover{border-bottom-color:var(--line)}
   .tag[contenteditable]:focus{outline:0;border-bottom-color:var(--amber)}
   .tag[contenteditable]:empty::before{content:attr(data-ph);color:var(--muted-dim);opacity:.65;font-style:italic}
+  /* Links (accesos rápidos) */
+  .linkrow{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-bottom:8px}
+  .linkdot{flex:0 0 auto;width:8px;height:8px;border-radius:50%}
+  .linkrow .linkname{flex:0 0 150px;min-width:110px;font-family:var(--mono);font-weight:600;font-size:13.5px;background:transparent;border:1px solid transparent;border-radius:8px;padding:7px 9px}
+  .linkrow .linkurl{flex:1;min-width:140px;font-family:var(--mono);font-size:13px;color:var(--muted);background:transparent;border:1px solid transparent;border-radius:8px;padding:7px 9px}
+  .linkrow .linkname:hover,.linkrow .linkurl:hover{border-color:var(--line)}
+  .linkrow .linkname:focus,.linkrow .linkurl:focus{outline:0;border-color:var(--amber);background:var(--surface-2)}
+  .chip.lopen{cursor:pointer;white-space:nowrap;flex:0 0 auto}
