@@ -178,3 +178,8 @@
     nav.tabs button{padding:9px 12px}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  /* notas de día editables (por usuario) */
+  .tag[contenteditable]{cursor:text;border-bottom:1px dashed transparent;transition:border-color .15s;min-width:1ch;display:inline-block}
+  .tag[contenteditable]:hover{border-bottom-color:var(--line)}
+  .tag[contenteditable]:focus{outline:0;border-bottom-color:var(--amber)}
+  .tag[contenteditable]:empty::before{content:attr(data-ph);color:var(--muted-dim);opacity:.65;font-style:italic}

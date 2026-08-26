@@ -45,8 +45,23 @@ async function pushCloud(){
 let _pushT;
 function schedulePush(){ if(!sb||!sbUser) return; clearTimeout(_pushT); _pushT=setTimeout(pushCloud,800); }
 
+// aísla la cache local por usuario: si cambió el usuario en este navegador, borra la cache del anterior
+function scopeStorage(uid){
+  try{
+    const prev=localStorage.getItem('org_uid');
+    if(prev===null){ localStorage.setItem('org_uid',uid); return; } // 1ra vez con esta versión: la cache es de este usuario, se conserva
+    if(prev!==uid){
+      // cambió el usuario en este navegador: limpiar la cache del anterior
+      for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.indexOf('org:')===0)localStorage.removeItem(k);}
+      for(const k in mem) delete mem[k];
+      localStorage.setItem('org_uid',uid);
+    }
+  }catch(e){}
+}
+
 async function afterAuth(){
   hideLogin();
+  scopeStorage(sbUser.id);
   await pullCloud();
   _readyResolve();
   bootApp();
@@ -129,64 +144,13 @@ document.getElementById('estudiodate').textContent=DIAS[dow]+' '+now.getDate()+'
 function mins(t){const [h,m]=t.split(':').map(Number);return (h<5?h+24:h)*60+m;}
 
 /* ---------- horario por defecto (se guarda una vez, después es editable) ---------- */
-const NOTE={1:'cursada tarde',2:'virtual noche · duerme en lo de tu novia',3:'clase temprano en Recoleta',4:'día full: tarde + noche',5:'cursada noche · AWS',6:'libre',0:'libre + planificar'};
+let notes={}; // notas por día — se cargan por usuario desde la BD (vacío por defecto)
 const KLABEL={cursada:'Facultad',gym:'Gym',estudio:'Estudio',laburo:'Laburo',boot:'boot.dev',typing:'Mecanografía',rutina:'Rutina',libre:'Libre',dormir:'Descanso'};
-const RAW={
-  1:[['08:00','Despertar y desayunar','rutina'],['08:30','Gym','gym'],['10:15','TypingClub · 30 min','typing'],['10:45','Estudiar facu','estudio'],['12:00','Almorzar','rutina'],['13:30','Desarrollo de Aplicaciones 2','cursada'],['18:00','boot.dev · Go','boot'],['20:00','Cenar','rutina'],['21:00','Serie o lectura','libre'],['00:00','Dormir','dormir']],
-  2:[['08:00','Despertar y desayunar','rutina'],['08:30','Gym','gym'],['10:15','TypingClub · 30 min','typing'],['10:45','Estudiar facu','estudio'],['12:00','Almorzar','rutina'],['15:00','Buscar laburo · mandar CVs','laburo'],['18:30','Dirección de Empresas · clase o actividades','cursada'],['22:00','A lo de tu novia · descanso','rutina'],['00:00','Dormir','dormir']],
-  3:[['06:45','Despertar','rutina'],['07:45','Programación 3 · Recoleta','cursada'],['12:00','Almorzar','rutina'],['13:00','Gym','gym'],['14:45','TypingClub · 30 min','typing'],['15:15','Estudiar facu','estudio'],['18:30','Calidad de Software · clase o actividades','cursada'],['21:45','Serie o descanso','libre'],['00:00','Dormir','dormir']],
-  4:[['08:00','Despertar y desayunar','rutina'],['09:00','Gym','gym'],['10:45','TypingClub · 30 min','typing'],['11:15','Repaso liviano','estudio'],['12:00','Almorzar','rutina'],['13:30','Física 1','cursada'],['17:30','Merienda · respiro','rutina'],['18:45','Derecho Informático','cursada'],['22:30','Cenar · serie corta','libre'],['00:30','Dormir','dormir']],
-  5:[['08:00','Despertar y desayunar','rutina'],['08:30','Gym','gym'],['10:15','TypingClub · 30 min','typing'],['10:45','Estudiar facu · prep AWS','estudio'],['12:00','Almorzar','rutina'],['15:00','Buscar laburo · mandar CVs','laburo'],['18:45','Arquitectura de Software · AWS/SAA','cursada'],['22:30','Serie o libre','libre'],['00:00','Dormir','dormir']],
-  6:[['09:00','Despertar','rutina'],['10:00','boot.dev · bloque largo','boot'],['12:00','Almorzar','rutina'],['13:00','Lavar ropa · ordenar','rutina'],['14:00','Tarde libre','libre'],['17:00','Estudiar si hay parcial','estudio'],['18:00','TypingClub · 30 min','typing'],['21:00','Noche libre','libre']],
-  0:[['10:00','Despertar','rutina'],['11:00','boot.dev · bloque largo','boot'],['12:00','Almorzar','rutina'],['16:00','Planificar la semana','estudio'],['17:00','Preparar ropa y mochila','rutina'],['18:00','TypingClub · 30 min','typing'],['21:00','Noche libre','libre']]
-};
+const RAW={0:[],1:[],2:[],3:[],4:[],5:[],6:[]}; // horario vacío por defecto: cada usuario arma el suyo
 function buildDefault(){const o={};for(const d in RAW){o[d]=RAW[d].map(b=>({id:genId(),time:b[0],label:b[1],kind:b[2]}));}return o;}
 
 /* rutina de gym precargada (editable después) */
-const GYM_RAW=[
-  ['Lun · Empuje A (pecho) · edificio',[
-    ['Fondos (paralelas/entre bancos)','4 · máx−1'],
-    ['Press inclinado con mancuernas','3 · 8-12'],
-    ['Pec deck (máquina)','3 · 12-15'],
-    ['Press de hombro de pie c/ mancuernas','3 · 8-12'],
-    ['Elevaciones laterales','3 · 12-20'],
-    ['Tríceps: extensión con mancuerna','3 · 12-15']]],
-  ['Mar · Piernas A (cuádriceps) · edificio',[
-    ['Goblet squat (17 kg)','4 · 10-15'],
-    ['Búlgaras con mancuernas','3 · 8-12 x pierna'],
-    ['Extensión de cuádriceps','3 · 12-20'],
-    ['Hip thrust con mancuerna/KB','3 · 12-15'],
-    ['Gemelos de pie con mancuerna','4 · 15-20'],
-    ['Plancha','3 · 30-60 seg']]],
-  ['Mié · Tirón A (volumen) · parque',[
-    ['Dominadas pronas (1 serie c/90 seg)','6-8 · 4-5'],
-    ['Dominadas supinas (chin-ups)','3 · máx−1'],
-    ['Práctica de muscle-up','3-4 · 1-2'],
-    ['Elevación de piernas colgado','3 · 10-15']]],
-  ['Jue · Empuje B (hombro) · edificio',[
-    ['Press de hombro de pie c/ mancuernas','4 · 6-10'],
-    ['Fondos','3 · máx−1'],
-    ['Press plano con mancuernas','3 · 8-12'],
-    ['Elevaciones laterales','4 · 12-20'],
-    ['Pec deck','2 · 12-15'],
-    ['Tríceps: fondos en banco','3 · 12-15']]],
-  ['Vie · Piernas B (cadera/isquios) · edificio',[
-    ['Peso muerto rumano con mancuernas','4 · 8-12'],
-    ['Hip thrust con mancuerna/KB','4 · 10-15'],
-    ['Zancadas caminando con mancuernas','3 · 10-12 x pierna'],
-    ['Extensión de cuádriceps','3 · 15'],
-    ['Curl femoral con toalla / nórdico','3 · 6-10'],
-    ['Gemelos','3 · 15-20']]],
-  ['Sáb · Tirón B (fuerza + espalda) · casa+edificio',[
-    ['Dominadas (pesadas, descanso 2-3 min)','4-5 · máx−1'],
-    ['Dominadas neutras/supinas','3 · 6-10'],
-    ['Jalón en polea alta','3 · 10-15'],
-    ['Remo con mancuernas (apoyado)','3 · 8-12'],
-    ['Curl de bíceps con barra larga','3 · 10-15'],
-    ['Elevación de piernas colgado','3 · 10-15']]],
-  ['Dom · Libre',[
-    ['Descanso o caminata suave','—']]]
-];
+const GYM_RAW=[]; // rutina vacía por defecto
 function buildGym(){return {days:GYM_RAW.map(d=>({id:genId(),name:d[0],exs:d[1].map(e=>({id:genId(),name:e[0],sets:e[1]}))}))};}
 
 /* ---------- estado ---------- */
@@ -201,7 +165,7 @@ async function renderHoy(){
   todayChecks=(await store.get('checks:'+TODAY))||{};
   const list=schedule[dow]||[];
   document.getElementById('todayname').textContent=DIAS[dow];
-  document.getElementById('todaytag').textContent=NOTE[dow]||'';
+  document.getElementById('todaytag').textContent=notes[dow]||'';
   const nowIdx=currentIdx(list);
   const rail=document.getElementById('rail');rail.innerHTML='';
   list.forEach((b,i)=>{
@@ -243,7 +207,7 @@ function renderSemana(){
     const card=document.createElement('div');card.className='daycard'+(d===dow?' today':'');
     const rows=(schedule[d]||[]).filter(b=>b.kind!=='rutina'&&b.kind!=='dormir')
       .map(b=>'<div class="wrow '+(b.kind==='cursada'?'cursada':'')+'"><span class="t">'+b.time+'</span><span class="l">'+esc(b.label)+'</span></div>').join('');
-    card.innerHTML='<h3>'+DIAS[d]+(d===dow?'<span class="badge">hoy</span>':'')+'</h3><div class="sub">'+(NOTE[d]||'')+'</div>'+(rows||'<div class="wrow"><span class="l" style="color:var(--muted-dim)">—</span></div>');
+    card.innerHTML='<h3>'+DIAS[d]+(d===dow?'<span class="badge">hoy</span>':'')+'</h3><div class="sub">'+(notes[d]||'')+'</div>'+(rows||'<div class="wrow"><span class="l" style="color:var(--muted-dim)">—</span></div>');
     card.addEventListener('click',()=>openDay(d));
     g.appendChild(card);
   });
@@ -265,7 +229,7 @@ function closeDay(){
 function renderDayDetail(){
   const d=selectedDay, list=schedule[d]||[], isToday=(d===dow);
   document.getElementById('dname').innerHTML=DIAS[d]+(isToday?' <span class="badge">hoy</span>':'');
-  document.getElementById('dnote').textContent=NOTE[d]||'';
+  document.getElementById('dnote').textContent=notes[d]||'';
   document.getElementById('daddhint').textContent='Queda fija todos los '+DIAS[d].toLowerCase()+'.';
   const nowIdx=isToday?currentIdx(list):-1;
   const rail=document.getElementById('drail');rail.innerHTML='';
@@ -458,13 +422,26 @@ document.querySelectorAll('nav.tabs button').forEach(btn=>{
   });
 });
 
+/* ---------- notas de día editables (por usuario) ---------- */
+function wireNote(el,dayFn){
+  if(!el||el._wired) return; el._wired=true;
+  el.setAttribute('contenteditable','true'); el.spellcheck=false; el.dataset.ph='+ nota del día';
+  let t;
+  el.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{notes[dayFn()]=el.textContent.replace(/\s+/g,' ').trim();store.set('notes',notes);},400);});
+  el.addEventListener('blur',()=>{const v=el.textContent.replace(/\s+/g,' ').trim();el.textContent=v;notes[dayFn()]=v;store.set('notes',notes);});
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur();}});
+}
+
 /* ---------- init ---------- */
 async function bootApp(){
   if(booted) return; booted=true;
   schedule=await store.get('schedule');
   if(!schedule){schedule=buildDefault();await store.set('schedule',schedule);}
   gym=await store.get('gym'); if(!gym||!gym.days||!gym.days.length){gym=buildGym();await store.set('gym',gym);}
+  notes=(await store.get('notes'))||{};
   await renderHoy();renderSemana();await loadEst();renderGym();await loadPend();await loadVideos();
+  wireNote(document.getElementById('todaytag'),()=>dow);
+  wireNote(document.getElementById('dnote'),()=>selectedDay);
   // link discreto para cerrar sesión (útil en dispositivos compartidos)
   if(sb&&sbUser){
     const f=document.querySelector('footer');
