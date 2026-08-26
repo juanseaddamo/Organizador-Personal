@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script>try{var _t=JSON.parse(localStorage.getItem('org:theme'));if(_t)document.documentElement.setAttribute('data-theme',_t);}catch(e){}</script>
 </head>
 <body>
 <div class="wrap">
@@ -16,12 +17,18 @@
       <h1 class="hello" id="hello">Hola <span class="dim">·</span> <span class="uname" id="uname" contenteditable="true" spellcheck="false" data-ph="tu nombre"></span></h1>
       <div class="datebar" id="datebar">—</div>
     </div>
-    <div class="ring" title="Lo que marcaste hoy">
-      <svg width="52" height="52" viewBox="0 0 52 52">
-        <circle class="track" cx="26" cy="26" r="21" fill="none" stroke-width="5"/>
-        <circle class="prog" cx="26" cy="26" r="21" fill="none" stroke-width="5" stroke-dasharray="131.9" stroke-dashoffset="131.9"/>
-      </svg>
-      <div class="meta"><b id="ringnum">0/0</b>hecho hoy</div>
+    <div class="topright">
+      <div class="ring" title="Lo que marcaste hoy">
+        <svg width="52" height="52" viewBox="0 0 52 52">
+          <circle class="track" cx="26" cy="26" r="21" fill="none" stroke-width="5"/>
+          <circle class="prog" cx="26" cy="26" r="21" fill="none" stroke-width="5" stroke-dasharray="131.9" stroke-dashoffset="131.9"/>
+        </svg>
+        <div class="meta"><b id="ringnum">0/0</b>hecho hoy</div>
+      </div>
+      <div class="controls">
+        <button id="themeBtn" class="iconbtn" title="Cambiar tema" aria-label="Cambiar tema">🎨</button>
+        <button id="logoutBtn" class="txtbtn" title="Cerrar sesión">Salir</button>
+      </div>
     </div>
   </header>
 

@@ -194,6 +194,49 @@ function showLogin(){
 }
 function hideLogin(){ loginShown=false; const o=document.getElementById('loginOverlay'); if(o) o.remove(); }
 async function logout(){ try{ await sb.auth.signOut(); }catch(e){} location.reload(); }
+
+/* ---------- temas ---------- */
+const THEMES=[
+  {id:'code',label:'Editor de código',sw:['#0a0f0c','#39d353','#61afef']},
+  {id:'dracula',label:'Dracula',sw:['#282a36','#bd93f9','#50fa7b']},
+  {id:'nord',label:'Nord',sw:['#2e3440','#88c0d0','#a3be8c']},
+  {id:'gruvbox',label:'Gruvbox',sw:['#282828','#fabd2f','#b8bb26']},
+  {id:'rose-pine',label:'Rosé Pine',sw:['#191724','#ebbcba','#9ccfd8']},
+  {id:'solarized-light',label:'Solarized Light',sw:['#fdf6e3','#268bd2','#859900']},
+  {id:'github-light',label:'GitHub Light',sw:['#ffffff','#0969da','#1a7f37']},
+];
+let curTheme='code';
+function applyTheme(id,save){
+  curTheme=id||'code';
+  document.documentElement.setAttribute('data-theme',curTheme);
+  if(save!==false) store.set('theme',curTheme);
+  const menu=document.getElementById('themeMenu');
+  if(menu) menu.querySelectorAll('.themeItem').forEach(b=>b.classList.toggle('on',b.dataset.t===curTheme));
+}
+function buildThemeMenu(){
+  let menu=document.getElementById('themeMenu');
+  if(menu) return menu;
+  menu=document.createElement('div'); menu.id='themeMenu'; menu.hidden=true;
+  menu.innerHTML='<div class="tmHead">Tema</div>'+THEMES.map(t=>
+    '<button class="themeItem" data-t="'+t.id+'"><span class="tmSwatch">'+t.sw.map(c=>'<i style="background:'+c+'"></i>').join('')+'</span><span class="tmName">'+t.label+'</span><span class="tmCheck">✓</span></button>'
+  ).join('');
+  document.body.appendChild(menu);
+  menu.querySelectorAll('.themeItem').forEach(b=>b.addEventListener('click',()=>{applyTheme(b.dataset.t);closeThemeMenu();}));
+  return menu;
+}
+function openThemeMenu(){
+  const menu=buildThemeMenu();
+  applyTheme(curTheme,false); // resalta el activo
+  menu.hidden=false;
+  const btn=document.getElementById('themeBtn'), r=btn.getBoundingClientRect(), w=menu.offsetWidth;
+  menu.style.top=(r.bottom+8)+'px';
+  menu.style.left=Math.max(8,Math.min(r.right-w,window.innerWidth-w-8))+'px';
+  setTimeout(()=>document.addEventListener('click',outsideThemeClick),0);
+}
+function closeThemeMenu(){ const m=document.getElementById('themeMenu'); if(m)m.hidden=true; document.removeEventListener('click',outsideThemeClick); }
+function outsideThemeClick(e){ const m=document.getElementById('themeMenu'), b=document.getElementById('themeBtn'); if(m&&!m.contains(e.target)&&e.target!==b) closeThemeMenu(); }
+document.getElementById('themeBtn').addEventListener('click',e=>{ e.stopPropagation(); const m=document.getElementById('themeMenu'); if(m&&!m.hidden) closeThemeMenu(); else openThemeMenu(); });
+document.getElementById('logoutBtn').addEventListener('click',()=>{ if(confirm('¿Cerrar sesión?')) logout(); });
 let saveTimer;
 function flashSaved(){const n=document.getElementById('savenote');n.classList.add('show');clearTimeout(saveTimer);saveTimer=setTimeout(()=>n.classList.remove('show'),1200);}
 let _idc=0; function genId(){return 'x'+Date.now().toString(36)+(_idc++).toString(36)+Math.random().toString(36).slice(2,5);}
@@ -552,6 +595,7 @@ function wireNote(el,dayFn){
 /* ---------- init ---------- */
 async function bootApp(){
   if(booted) return; booted=true;
+  applyTheme((await store.get('theme'))||'code',false); // aplica el tema del usuario (ya sincronizado)
   schedule=await store.get('schedule');
   if(!schedule){schedule=buildDefault();await store.set('schedule',schedule);}
   gym=await store.get('gym'); if(!gym||!gym.days||!gym.days.length){gym=buildGym();await store.set('gym',gym);}
