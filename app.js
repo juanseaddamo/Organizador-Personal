@@ -83,32 +83,86 @@ async function initSupabase(){
   setTimeout(()=>{ if(!booted && !loginShown){ _readyResolve(); bootApp(); } },6000);
 }
 
-/* ---------- pantalla de login (magic link por email) ---------- */
+/* ---------- pantalla de login/registro (email + contraseña) ---------- */
+// dominios permitidos para registrarse (filtro liviano anti-randoms; ampliable)
+const ALLOWED_DOMAINS=['gmail.com','googlemail.com','hotmail.com','hotmail.com.ar','outlook.com','outlook.com.ar','live.com','live.com.ar','yahoo.com','yahoo.com.ar','icloud.com','me.com','proton.me','protonmail.com'];
+function emailDomainOk(email){ const d=(email.split('@')[1]||'').toLowerCase(); return ALLOWED_DOMAINS.indexOf(d)!==-1; }
+
 function showLogin(){
   if(loginShown||booted) return; loginShown=true;
+  let mode='login'; // 'login' | 'signup'
   const o=document.createElement('div'); o.id='loginOverlay';
-  o.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);padding:20px;';
-  o.innerHTML='<div style="background:#161616;border:1px solid #2a2a2a;border-radius:16px;padding:28px 24px;max-width:340px;width:100%;text-align:center;color:#eee;font-family:inherit;">'+
-    '<h2 style="margin:0 0 6px;font-size:19px;">Tu organizador</h2>'+
-    '<p style="margin:0 0 18px;font-size:13px;color:#9a9a9a;line-height:1.5;">Ingresá con tu email para sincronizar entre tus dispositivos. Te llega un link, sin contraseña.</p>'+
-    '<input id="loginEmail" type="email" inputmode="email" autocomplete="email" placeholder="tu@email.com" style="width:100%;box-sizing:border-box;padding:11px 12px;border-radius:10px;border:1px solid #333;background:#0e0e0e;color:#eee;font-size:15px;margin-bottom:10px;">'+
-    '<button id="loginBtn" style="width:100%;padding:11px;border-radius:10px;border:0;background:#e6e6e6;color:#111;font-size:15px;font-weight:600;cursor:pointer;">Enviarme el link</button>'+
-    '<div id="loginMsg" style="margin-top:12px;font-size:12.5px;color:#9a9a9a;min-height:16px;line-height:1.4;"></div>'+
+  o.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);padding:20px;';
+  const inpCss='width:100%;box-sizing:border-box;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:15px;margin-bottom:10px;font-family:inherit;';
+  o.innerHTML='<div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px 24px;max-width:340px;width:100%;text-align:center;color:var(--text);font-family:var(--body,inherit);box-shadow:0 20px 60px rgba(0,0,0,.4);">'+
+    '<h2 id="loginTitle" style="margin:0 0 6px;font-size:19px;font-family:var(--disp,inherit);">Tu organizador</h2>'+
+    '<p id="loginSub" style="margin:0 0 18px;font-size:13px;color:var(--muted);line-height:1.5;">Entrá con tu email y contraseña para sincronizar entre tus dispositivos.</p>'+
+    '<input id="loginEmail" type="email" inputmode="email" autocomplete="email" placeholder="tu@email.com" style="'+inpCss+'">'+
+    '<input id="loginPass" type="password" autocomplete="current-password" placeholder="Contraseña" style="'+inpCss+'">'+
+    '<input id="loginPass2" type="password" autocomplete="new-password" placeholder="Repetir contraseña" style="'+inpCss+'display:none;">'+
+    '<button id="loginBtn" style="width:100%;padding:11px;border-radius:10px;border:0;background:var(--amber);color:var(--bg);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">Entrar</button>'+
+    '<div id="loginMsg" style="margin-top:12px;font-size:12.5px;color:var(--muted);min-height:16px;line-height:1.4;"></div>'+
+    '<div style="margin-top:14px;font-size:12.5px;color:var(--muted);">'+
+      '<span id="loginToggleTxt">¿No tenés cuenta?</span> '+
+      '<a id="loginToggle" href="#" style="color:var(--amber);text-decoration:none;font-weight:600;">Crear cuenta</a>'+
+    '</div>'+
     '</div>';
   document.body.appendChild(o);
-  const email=o.querySelector('#loginEmail'), btn=o.querySelector('#loginBtn'), msg=o.querySelector('#loginMsg');
-  async function send(){
-    const v=(email.value||'').trim();
-    if(!/.+@.+\..+/.test(v)){ msg.textContent='Poné un email válido.'; return; }
-    btn.disabled=true; msg.style.color='#9a9a9a'; msg.textContent='Enviando…';
-    try{
-      const {error}=await sb.auth.signInWithOtp({email:v,options:{emailRedirectTo:location.origin+location.pathname}});
-      if(error){ msg.style.color='#e88'; msg.textContent='Error: '+error.message; btn.disabled=false; }
-      else{ msg.style.color='#8ec99a'; msg.textContent='Listo. Revisá tu mail y abrí el link desde este dispositivo.'; }
-    }catch(e){ msg.style.color='#e88'; msg.textContent='Error de conexión.'; btn.disabled=false; }
+  const email=o.querySelector('#loginEmail'), pass=o.querySelector('#loginPass'), pass2=o.querySelector('#loginPass2'),
+        btn=o.querySelector('#loginBtn'), msg=o.querySelector('#loginMsg'),
+        title=o.querySelector('#loginTitle'), sub=o.querySelector('#loginSub'),
+        toggle=o.querySelector('#loginToggle'), toggleTxt=o.querySelector('#loginToggleTxt');
+
+  function setMode(m){
+    mode=m;
+    if(m==='signup'){
+      title.textContent='Crear cuenta';
+      sub.textContent='Registrate con tu email y una contraseña. No hace falta confirmar por mail.';
+      pass2.style.display=''; pass.setAttribute('autocomplete','new-password');
+      btn.textContent='Crear cuenta';
+      toggleTxt.textContent='¿Ya tenés cuenta?'; toggle.textContent='Entrar';
+    }else{
+      title.textContent='Tu organizador';
+      sub.textContent='Entrá con tu email y contraseña para sincronizar entre tus dispositivos.';
+      pass2.style.display='none'; pass.setAttribute('autocomplete','current-password');
+      btn.textContent='Entrar';
+      toggleTxt.textContent='¿No tenés cuenta?'; toggle.textContent='Crear cuenta';
+    }
+    msg.textContent='';
   }
-  btn.addEventListener('click',send);
-  email.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
+  function err(t){ msg.style.color='var(--c-tag,#e06c75)'; msg.textContent=t; }
+  function info(t){ msg.style.color='var(--muted)'; msg.textContent=t; }
+
+  async function submit(){
+    const em=(email.value||'').trim().toLowerCase(), pw=pass.value||'';
+    if(!/.+@.+\..+/.test(em)){ err('Poné un email válido.'); return; }
+    if(pw.length<6){ err('La contraseña tiene que tener al menos 6 caracteres.'); return; }
+    btn.disabled=true;
+    try{
+      if(mode==='signup'){
+        if(!emailDomainOk(em)){ err('Usá un email de Gmail, Hotmail, Yahoo, Outlook o iCloud.'); btn.disabled=false; return; }
+        if(pw!==(pass2.value||'')){ err('Las contraseñas no coinciden.'); btn.disabled=false; return; }
+        info('Creando cuenta…');
+        const {error}=await sb.auth.signUp({email:em,password:pw});
+        if(error){
+          const m=/already registered|already exists/i.test(error.message)?'Ese email ya tiene cuenta. Entrá con tu contraseña.':'Error: '+error.message;
+          err(m); btn.disabled=false; return;
+        }
+        // con confirmación desactivada, signUp deja sesión y dispara onAuthStateChange → afterAuth
+      }else{
+        info('Entrando…');
+        const {error}=await sb.auth.signInWithPassword({email:em,password:pw});
+        if(error){
+          const m=/invalid login credentials/i.test(error.message)?'Email o contraseña incorrectos.':'Error: '+error.message;
+          err(m); btn.disabled=false; return;
+        }
+      }
+    }catch(e){ err('Error de conexión.'); btn.disabled=false; }
+  }
+
+  btn.addEventListener('click',submit);
+  toggle.addEventListener('click',e=>{e.preventDefault(); setMode(mode==='login'?'signup':'login'); email.focus();});
+  [email,pass,pass2].forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter')submit();}));
   email.focus();
 }
 function hideLogin(){ loginShown=false; const o=document.getElementById('loginOverlay'); if(o) o.remove(); }
