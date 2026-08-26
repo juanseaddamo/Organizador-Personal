@@ -191,3 +191,12 @@
   .linkrow .linkname:hover,.linkrow .linkurl:hover{border-color:var(--line)}
   .linkrow .linkname:focus,.linkrow .linkurl:focus{outline:0;border-color:var(--amber);background:var(--surface-2)}
   .chip.lopen{cursor:pointer;white-space:nowrap;flex:0 0 auto}
+
+  /* barra de cuenta demo */
+  #demoBar{position:fixed;left:0;right:0;bottom:0;z-index:9000;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
+    background:var(--surface);border-top:1px solid var(--accent-line);padding:10px 16px;font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+  #demoBar .demoTxt{letter-spacing:.02em}
+  #demoBar .demoBtn{font-family:var(--disp);font-weight:600;font-size:13px;color:var(--bg);background:var(--amber);border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+  #demoBar .demoBtn:hover{filter:brightness(1.08)}
+  #demoBar .demoBtn:disabled{opacity:.6;cursor:default}
+  body.has-demobar .wrap{padding-bottom:120px}

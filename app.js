@@ -12,6 +12,8 @@ const store={
 const SUPABASE_URL='https://butkdtyyekaqjwxlsrfu.supabase.co';
 const SUPABASE_KEY='sb_publishable_J8jK_Vwy7qcFANilxbzFhg_yB1jQwax';
 let sb=null, sbUser=null, booted=false, loginShown=false;
+const DEMO_EMAIL='demo@organizador.app'; // si tu usuario demo tiene otro email, cambialo acá y en reset_demo()
+let isDemo=false;
 let _readyResolve; const ready=new Promise(r=>_readyResolve=r);
 
 // baja el estado de la nube y lo vuelca a mem + localStorage
@@ -61,10 +63,35 @@ function scopeStorage(uid){
 
 async function afterAuth(){
   hideLogin();
+  isDemo=((sbUser.email||'').toLowerCase()===DEMO_EMAIL);
   scopeStorage(sbUser.id);
+  if(isDemo){                                  // demo: siempre arranca de la semilla
+    try{ await sb.rpc('reset_demo'); }catch(e){ console.warn('reset_demo',e); }
+    clearLocalCache();
+  }
   await pullCloud();
   _readyResolve();
   bootApp();
+  if(isDemo) showDemoBanner();
+}
+// borra la cache local (claves org:) y el mem en memoria
+function clearLocalCache(){
+  try{ for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.indexOf('org:')===0)localStorage.removeItem(k);} }catch(e){}
+  for(const k in mem) delete mem[k];
+}
+// barra fija para la cuenta demo, con botón para resetear sin salir
+function showDemoBanner(){
+  if(document.getElementById('demoBar')) return;
+  document.body.classList.add('has-demobar');
+  const bar=document.createElement('div'); bar.id='demoBar';
+  bar.innerHTML='<span class="demoTxt">Cuenta demo · se resetea al volver a entrar</span>'+
+    '<button id="demoReset" class="demoBtn">Resetear demo</button>';
+  document.body.appendChild(bar);
+  document.getElementById('demoReset').addEventListener('click',async()=>{
+    const b=document.getElementById('demoReset'); b.disabled=true; b.textContent='Reseteando…';
+    try{ await sb.rpc('reset_demo'); }catch(e){}
+    clearLocalCache(); location.reload();
+  });
 }
 
 async function initSupabase(){
