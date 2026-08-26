@@ -13,6 +13,9 @@
     --bg:#0a0f0c;--surface:#111a15;--surface-2:#17231c;--line:#233029;--line-soft:#17231c;
     --text:#d3e0d6;--muted:#7d938a;--muted-dim:#5b6d63;
     --amber:#39d353;--amber-dim:rgba(57,211,83,.12);--accent-line:rgba(57,211,83,.38);--green:#2ea043;
+    /* paleta de syntax highlighting: cada categoría se pinta como un token de código */
+    --c-keyword:#c678dd;--c-func:#61afef;--c-string:#98c379;--c-number:#d19a66;
+    --c-class:#e5c07b;--c-tag:#e06c75;--c-cyan:#56b6c2;--c-indigo:#7c88d8;
     --radius:16px;--mono:'JetBrains Mono',ui-monospace,monospace;
     --disp:'Space Grotesk',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif;
   }
@@ -63,6 +66,16 @@
   .ttl{flex:1;min-width:0}
   .label{font-size:15px;font-weight:450}
   .kind{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-dim);margin-top:3px}
+  /* cada categoría = un token de sintaxis */
+  .kind.k-cursada{color:var(--c-keyword)}   /* Facultad  → keyword */
+  .kind.k-estudio{color:var(--c-func)}       /* Estudio   → función */
+  .kind.k-gym{color:var(--c-tag)}            /* Gym       → tag/rojo */
+  .kind.k-laburo{color:var(--c-class)}       /* Laburo    → clase/amarillo */
+  .kind.k-boot{color:var(--c-cyan)}          /* boot.dev  → cyan */
+  .kind.k-typing{color:var(--c-number)}      /* Mecanografía → número/naranja */
+  .kind.k-rutina{color:var(--c-string)}      /* Rutina    → string/verde */
+  .kind.k-libre{color:var(--muted)}          /* Libre     → comentario */
+  .kind.k-dormir{color:var(--c-indigo)}      /* Descanso  → indigo */
   .del{flex:0 0 auto;background:transparent;border:0;color:var(--muted-dim);cursor:pointer;font-size:17px;line-height:1;padding:3px 6px;border-radius:6px;transition:color .15s}
   .del:hover{color:var(--amber)}
   .del:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
@@ -513,7 +526,7 @@ async function renderHoy(){
     const el=document.createElement('div');
     el.className='block'+(done?' done':'')+(i===nowIdx?' now':'')+(b.kind==='cursada'?' fixed':'');
     el.innerHTML='<div class="time">'+b.time+'</div><div class="body">'+checkSVG()+
-      '<div class="ttl"><div class="label">'+esc(b.label)+'<span class="nowtag">ahora</span></div><div class="kind">'+(KLABEL[b.kind]||'')+'</div></div>'+
+      '<div class="ttl"><div class="label">'+esc(b.label)+'<span class="nowtag">ahora</span></div><div class="kind k-'+b.kind+'">'+(KLABEL[b.kind]||'')+'</div></div>'+
       '<button class="del" title="Borrar" aria-label="Borrar">×</button></div>';
     el.querySelector('.check').addEventListener('click',()=>{todayChecks[b.id]=!todayChecks[b.id];store.set('checks:'+TODAY,todayChecks);el.classList.toggle('done',todayChecks[b.id]);updateRing();});
     el.querySelector('.del').addEventListener('click',()=>{schedule[dow]=schedule[dow].filter(x=>x.id!==b.id);store.set('schedule',schedule);renderHoy();renderSemana();});
@@ -578,7 +591,7 @@ function renderDayDetail(){
     const el=document.createElement('div');
     el.className='block'+(done?' done':'')+(i===nowIdx?' now':'')+(b.kind==='cursada'?' fixed':'');
     el.innerHTML='<div class="time">'+b.time+'</div><div class="body">'+(isToday?checkSVG():'')+
-      '<div class="ttl"><div class="label">'+esc(b.label)+(i===nowIdx?'<span class="nowtag">ahora</span>':'')+'</div><div class="kind">'+(KLABEL[b.kind]||'')+'</div></div>'+
+      '<div class="ttl"><div class="label">'+esc(b.label)+(i===nowIdx?'<span class="nowtag">ahora</span>':'')+'</div><div class="kind k-'+b.kind+'">'+(KLABEL[b.kind]||'')+'</div></div>'+
       '<button class="del" aria-label="Borrar">×</button></div>';
     if(isToday){el.querySelector('.check').addEventListener('click',()=>{todayChecks[b.id]=!todayChecks[b.id];store.set('checks:'+TODAY,todayChecks);el.classList.toggle('done',todayChecks[b.id]);updateRing();});}
     el.querySelector('.del').addEventListener('click',()=>{schedule[d]=schedule[d].filter(x=>x.id!==b.id);store.set('schedule',schedule);renderDayDetail();renderHoy();});
