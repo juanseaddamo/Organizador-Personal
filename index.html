@@ -9,9 +9,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#FFFAF3;--surface:#FFF2DB;--surface-2:#FFE5BF;--line:#F0DFC9;--line-soft:#F7ECDB;
-    --text:#3A2A22;--muted:#8C7B6C;--muted-dim:#A18F7D;
-    --amber:#F62440;--amber-dim:rgba(246,36,64,.10);--green:#F62440;
+    /* tema oscuro estilo editor de código (GitHub dark). El acento sale de --amber: cambialo por otro hex y recolorea toda la app */
+    --bg:#0d1117;--surface:#161b22;--surface-2:#21262d;--line:#30363d;--line-soft:#21262d;
+    --text:#e6edf3;--muted:#8b949e;--muted-dim:#6e7681;
+    --amber:#58a6ff;--amber-dim:rgba(88,166,255,.12);--accent-line:rgba(88,166,255,.4);--green:#3fb950;
     --radius:16px;--mono:'JetBrains Mono',ui-monospace,monospace;
     --disp:'Space Grotesk',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif;
   }
@@ -19,7 +20,7 @@
   [hidden]{display:none!important}
   html,body{margin:0}
   body{
-    background:radial-gradient(1200px 500px at 80% -10%, rgba(246,36,64,.05), transparent 60%),var(--bg);
+    background:radial-gradient(1200px 500px at 80% -10%, rgba(88,166,255,.06), transparent 60%),var(--bg);
     color:var(--text);font-family:var(--body);-webkit-font-smoothing:antialiased;line-height:1.45;min-height:100vh;
   }
   .wrap{max-width:1040px;margin:0 auto;padding:28px 20px 80px}
@@ -74,7 +75,7 @@
   .block.now .time{color:var(--amber);font-weight:600}
   .nowtag{display:none;font-family:var(--mono);font-size:10px;color:var(--bg);background:var(--amber);padding:1px 6px;border-radius:5px;letter-spacing:.03em;margin-left:8px;vertical-align:middle;text-transform:uppercase}
   .block.now .nowtag{display:inline-block}
-  .block.fixed .label::after{content:"cursada";font-family:var(--mono);font-size:9.5px;color:var(--amber);border:1px solid rgba(246,36,64,.4);padding:1px 5px;border-radius:5px;margin-left:8px;letter-spacing:.03em;text-transform:uppercase;vertical-align:middle;white-space:nowrap}
+  .block.fixed .label::after{content:"cursada";font-family:var(--mono);font-size:9.5px;color:var(--amber);border:1px solid var(--accent-line);padding:1px 5px;border-radius:5px;margin-left:8px;letter-spacing:.03em;text-transform:uppercase;vertical-align:middle;white-space:nowrap}
 
   /* add form */
   .addbtn{margin-top:14px;font-family:var(--disp);font-weight:500;font-size:13.5px;color:var(--muted);background:transparent;border:1px dashed var(--line);border-radius:10px;padding:11px 16px;cursor:pointer;width:100%;transition:all .15s}
@@ -96,7 +97,7 @@
   /* Semana */
   .weekgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
   .daycard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 8px}
-  .daycard.today{border-color:rgba(233,185,92,.5)}
+  .daycard.today{border-color:var(--accent-line)}
   .daycard h3{font-family:var(--disp);font-size:15px;font-weight:600;margin:0 0 2px;display:flex;align-items:center;justify-content:space-between}
   .daycard h3 .badge{font-family:var(--mono);font-size:9.5px;color:var(--bg);background:var(--amber);padding:2px 6px;border-radius:5px;text-transform:uppercase;letter-spacing:.03em}
   .daycard .sub{font-family:var(--mono);font-size:10.5px;color:var(--muted-dim);text-transform:uppercase;letter-spacing:.04em;margin-bottom:12px}
@@ -133,7 +134,7 @@
   .poolhead{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-dim);margin-bottom:10px}
   .poolrow{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:9px 12px;background:var(--surface);border:1px solid var(--line-soft);border-radius:10px;margin-bottom:7px;font-size:14px}
   .poolrow span{flex:1;min-width:0}
-  .poolbtn{flex:0 0 auto;font-family:var(--disp);font-size:12.5px;font-weight:600;color:var(--amber);background:transparent;border:1px solid rgba(246,36,64,.4);border-radius:8px;padding:7px 13px;cursor:pointer;white-space:nowrap;transition:background .15s}
+  .poolbtn{flex:0 0 auto;font-family:var(--disp);font-size:12.5px;font-weight:600;color:var(--amber);background:transparent;border:1px solid var(--accent-line);border-radius:8px;padding:7px 13px;cursor:pointer;white-space:nowrap;transition:background .15s}
   .poolbtn:hover{background:var(--amber-dim)}
   .poolempty{color:var(--muted-dim);font-size:13px;padding:4px 2px}
 
@@ -149,7 +150,7 @@
   .chip{font-family:var(--disp);font-size:12px;font-weight:600;padding:6px 11px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
   .chip:hover{color:var(--text)}
   .chip.on{background:var(--amber);color:var(--bg);border-color:transparent}
-  .chip.acc{color:var(--amber);border-color:rgba(246,36,64,.4)}
+  .chip.acc{color:var(--amber);border-color:var(--accent-line)}
   @media (max-width:520px){.vidthumb{flex-basis:104px}}
 
   /* Gym */
