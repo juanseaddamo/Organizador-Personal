@@ -27,6 +27,10 @@
   header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:24px}
   .hello{font-family:var(--disp);font-weight:600;font-size:clamp(26px,5vw,38px);letter-spacing:-.02em;line-height:1.05;margin:0}
   .hello .dim{color:var(--muted)}
+  .uname{outline:0;border-bottom:1px dashed var(--line);padding:0 2px;cursor:text;transition:border-color .15s;min-width:2ch;display:inline-block}
+  .uname:hover{border-bottom-color:var(--muted-dim)}
+  .uname:focus{border-bottom-color:var(--amber);border-bottom-style:solid}
+  .uname:empty::before{content:attr(data-ph);color:var(--muted-dim);font-style:italic}
   .datebar{font-family:var(--mono);font-size:12.5px;color:var(--muted);margin-top:8px;letter-spacing:.02em;text-transform:uppercase}
   .ring{display:flex;align-items:center;gap:12px}
   .ring svg{transform:rotate(-90deg)}
@@ -176,7 +180,7 @@
 <div class="wrap">
   <header class="top">
     <div>
-      <h1 class="hello" id="hello">Hola</h1>
+      <h1 class="hello" id="hello">Hola <span class="dim">·</span> <span class="uname" id="uname" contenteditable="true" spellcheck="false" data-ph="tu nombre"></span></h1>
       <div class="datebar" id="datebar">—</div>
     </div>
     <div class="ring" title="Lo que marcaste hoy">
@@ -318,8 +322,19 @@ const dow=now.getDay();
 function dkey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 const TODAY=dkey(now);
 const hr=now.getHours();
-document.getElementById('hello').innerHTML=(hr<6?'Buenas noches':hr<13?'Buen día':hr<20?'Buenas tardes':'Buenas noches')+' <span class="dim">·</span> a darle';
+const _hello=document.getElementById('hello');
+const _greet=(hr<6?'Buenas noches':hr<13?'Buen día':hr<20?'Buenas tardes':'Buenas noches');
+_hello.firstChild.nodeValue=_greet+' ';
 document.getElementById('datebar').textContent=DIAS[dow]+' '+now.getDate()+' '+MESES[now.getMonth()];
+
+/* ---------- nombre de usuario (editable, se guarda en el navegador) ---------- */
+const _uname=document.getElementById('uname');
+(async()=>{const n=await store.get('username');if(n)_uname.textContent=n;})();
+function _saveName(){const v=(_uname.textContent||'').replace(/\s+/g,' ').trim().slice(0,40);store.set('username',v);}
+let _uT;_uname.addEventListener('input',()=>{clearTimeout(_uT);_uT=setTimeout(_saveName,300);});
+_uname.addEventListener('blur',()=>{const v=(_uname.textContent||'').replace(/\s+/g,' ').trim().slice(0,40);_uname.textContent=v;_saveName();});
+_uname.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();_uname.blur();}});
+_uname.addEventListener('paste',e=>{e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData('text').replace(/\s+/g,' ').trim();document.execCommand('insertText',false,t);});
 document.getElementById('estudiodate').textContent=DIAS[dow]+' '+now.getDate()+' '+MESES[now.getMonth()];
 
 // minutos con medianoche al final del día (00:00 y 00:30 cuentan como fin, no inicio)
