@@ -121,19 +121,34 @@ function showLogin(){
   const o=document.createElement('div'); o.id='loginOverlay';
   o.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);padding:20px;';
   const inpCss='width:100%;box-sizing:border-box;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:15px;margin-bottom:10px;font-family:inherit;';
-  o.innerHTML='<div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px 24px;max-width:340px;width:100%;text-align:center;color:var(--text);font-family:var(--body,inherit);box-shadow:0 20px 60px rgba(0,0,0,.4);">'+
-    '<h2 id="loginTitle" style="margin:0 0 6px;font-size:19px;font-family:var(--disp,inherit);">Tu organizador</h2>'+
-    '<p id="loginSub" style="margin:0 0 18px;font-size:13px;color:var(--muted);line-height:1.5;">Entrá con tu email y contraseña para sincronizar entre tus dispositivos.</p>'+
-    '<input id="loginEmail" type="email" inputmode="email" autocomplete="email" placeholder="tu@email.com" style="'+inpCss+'">'+
-    '<input id="loginPass" type="password" autocomplete="current-password" placeholder="Contraseña" style="'+inpCss+'">'+
-    '<input id="loginPass2" type="password" autocomplete="new-password" placeholder="Repetir contraseña" style="'+inpCss+'display:none;">'+
-    '<button id="loginBtn" style="width:100%;padding:11px;border-radius:10px;border:0;background:var(--amber);color:var(--bg);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">Entrar</button>'+
-    '<div id="loginMsg" style="margin-top:12px;font-size:12.5px;color:var(--muted);min-height:16px;line-height:1.4;"></div>'+
-    '<div style="margin-top:14px;font-size:12.5px;color:var(--muted);">'+
-      '<span id="loginToggleTxt">¿No tenés cuenta?</span> '+
-      '<a id="loginToggle" href="#" style="color:var(--amber);text-decoration:none;font-weight:600;">Crear cuenta</a>'+
+  const cardCss='background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px 24px;max-width:340px;width:100%;color:var(--text);font-family:var(--body,inherit);box-shadow:0 20px 60px rgba(0,0,0,.4);display:flex;flex-direction:column;';
+  o.innerHTML='<div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;align-items:stretch;width:100%;max-width:720px;">'+
+    // ----- tarjeta 1: login / registro -----
+    '<div style="'+cardCss+'text-align:center;">'+
+      '<h2 id="loginTitle" style="margin:0 0 6px;font-size:19px;font-family:var(--disp,inherit);">Tu organizador</h2>'+
+      '<p id="loginSub" style="margin:0 0 18px;font-size:13px;color:var(--muted);line-height:1.5;">Entrá con tu email y contraseña para sincronizar entre tus dispositivos.</p>'+
+      '<input id="loginEmail" type="email" inputmode="email" autocomplete="email" placeholder="tu@email.com" style="'+inpCss+'">'+
+      '<input id="loginPass" type="password" autocomplete="current-password" placeholder="Contraseña" style="'+inpCss+'">'+
+      '<input id="loginPass2" type="password" autocomplete="new-password" placeholder="Repetir contraseña" style="'+inpCss+'display:none;">'+
+      '<button id="loginBtn" style="width:100%;padding:11px;border-radius:10px;border:0;background:var(--amber);color:var(--bg);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">Entrar</button>'+
+      '<div id="loginMsg" style="margin-top:12px;font-size:12.5px;color:var(--muted);min-height:16px;line-height:1.4;"></div>'+
+      '<div style="margin-top:14px;font-size:12.5px;color:var(--muted);">'+
+        '<span id="loginToggleTxt">¿No tenés cuenta?</span> '+
+        '<a id="loginToggle" href="#" style="color:var(--amber);text-decoration:none;font-weight:600;">Crear cuenta</a>'+
+      '</div>'+
     '</div>'+
-    '</div>';
+    // ----- tarjeta 2: demo -----
+    '<div style="'+cardCss+'">'+
+      '<h2 style="margin:0 0 6px;font-size:19px;font-family:var(--disp,inherit);">Probar sin registrarte</h2>'+
+      '<p style="margin:0 0 14px;font-size:13px;color:var(--muted);line-height:1.5;">Entrá a la cuenta demo y mirá la app llena de ejemplos: agenda, gym, videos, pendientes y links.</p>'+
+      '<div style="background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-family:var(--mono,monospace);font-size:13px;line-height:1.75;margin-bottom:14px;">'+
+        '<div style="color:var(--muted)">email <span style="color:var(--text)">'+DEMO_EMAIL+'</span></div>'+
+        '<div style="color:var(--muted)">clave <span style="color:var(--text)">123456789</span></div>'+
+      '</div>'+
+      '<p style="margin:0 0 16px;font-size:12.5px;color:var(--muted);line-height:1.55;">Podés tocar y editar todo. <b style="color:var(--text)">Se resetea sola</b> cada vez que alguien entra, así siempre arranca fresca.</p>'+
+      '<button id="demoEnter" style="margin-top:auto;width:100%;padding:11px;border-radius:10px;border:1px solid var(--accent-line);background:transparent;color:var(--amber);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">Entrar a la demo →</button>'+
+    '</div>'+
+  '</div>';
   document.body.appendChild(o);
   const email=o.querySelector('#loginEmail'), pass=o.querySelector('#loginPass'), pass2=o.querySelector('#loginPass2'),
         btn=o.querySelector('#loginBtn'), msg=o.querySelector('#loginMsg'),
