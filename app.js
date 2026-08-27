@@ -17,16 +17,18 @@ let isDemo=false;
 let _readyResolve; const ready=new Promise(r=>_readyResolve=r);
 
 // baja el estado de la nube y lo vuelca a mem + localStorage
-async function pullCloud(){
+async function pullCloud(fresh){
   try{
+    if(fresh) clearLocalCache(); // cuenta distinta/demo: descarto cualquier cache ajena ANTES de traer la nube
     const {data,error}=await sb.from('estado').select('data').eq('user_id',sbUser.id).maybeSingle();
     if(error){console.warn('pullCloud',error);return;}
-    if(data && data.data && Object.keys(data.data).length){
-      const obj=data.data;
+    const obj=(data&&data.data)?data.data:{};
+    if(Object.keys(obj).length){
       for(const k in obj){ mem[k]=obj[k]; try{localStorage.setItem('org:'+k,JSON.stringify(obj[k]));}catch(e){} }
-    }else{
-      await pushCloud(); // primera vez: subo lo que ya tengo local
+    }else if(!fresh){
+      await pushCloud(); // mismo usuario y nube vacía: primera sincronización, subo lo local
     }
+    // fresh + nube vacía => cuenta nueva/demo sin datos: queda vacío. NUNCA se sube cache de otra cuenta.
   }catch(e){console.warn('pullCloud',e);}
 }
 
@@ -47,29 +49,15 @@ async function pushCloud(){
 let _pushT;
 function schedulePush(){ if(!sb||!sbUser) return; clearTimeout(_pushT); _pushT=setTimeout(pushCloud,800); }
 
-// aísla la cache local por usuario: si cambió el usuario en este navegador, borra la cache del anterior
-function scopeStorage(uid){
-  try{
-    const prev=localStorage.getItem('org_uid');
-    if(prev===null){ localStorage.setItem('org_uid',uid); return; } // 1ra vez con esta versión: la cache es de este usuario, se conserva
-    if(prev!==uid){
-      // cambió el usuario en este navegador: limpiar la cache del anterior
-      for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&k.indexOf('org:')===0)localStorage.removeItem(k);}
-      for(const k in mem) delete mem[k];
-      localStorage.setItem('org_uid',uid);
-    }
-  }catch(e){}
-}
 
 async function afterAuth(){
   hideLogin();
   isDemo=((sbUser.email||'').toLowerCase()===DEMO_EMAIL);
-  scopeStorage(sbUser.id);
-  if(isDemo){                                  // demo: siempre arranca de la semilla
-    try{ await sb.rpc('reset_demo'); }catch(e){ console.warn('reset_demo',e); }
-    clearLocalCache();
-  }
-  await pullCloud();
+  if(isDemo){ try{ await sb.rpc('reset_demo'); }catch(e){ console.warn('reset_demo',e); } } // demo: siempre arranca de la semilla
+  // "fresh" = cambió de cuenta en este navegador (o es la demo): hay que descartar la cache local ajena
+  const fresh = isDemo || (localStorage.getItem('org_uid')!==sbUser.id);
+  await pullCloud(fresh);
+  try{ localStorage.setItem('org_uid',sbUser.id); }catch(e){}
   _readyResolve();
   bootApp();
   if(isDemo) showDemoBanner();
