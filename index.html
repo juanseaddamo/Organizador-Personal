@@ -36,6 +36,7 @@
     <button role="tab" aria-selected="true" data-tab="hoy">Hoy</button>
     <button role="tab" aria-selected="false" data-tab="semana">Semana</button>
     <button role="tab" aria-selected="false" data-tab="estudio">Estudio</button>
+    <button role="tab" aria-selected="false" data-tab="materias">Materias</button>
     <button role="tab" aria-selected="false" data-tab="gym">Gym</button>
     <button role="tab" aria-selected="false" data-tab="videos">Videos</button>
     <button role="tab" aria-selected="false" data-tab="links">Links</button>
@@ -48,14 +49,13 @@
     <button class="addbtn" id="addtoggle">+ Agregar actividad fija</button>
     <div class="addform" id="addform" hidden>
       <div class="hint" id="addhint">Queda fija todos los días de este día de la semana.</div>
-      <input type="time" id="ntime" value="12:00">
+      <label class="tlbl">Desde<input type="time" id="ntime" value="12:00"></label>
+      <label class="tlbl">Hasta<input type="time" id="nend" value="13:00"></label>
       <input type="text" id="nlabel" placeholder="Qué actividad" autocomplete="off">
       <select id="nkind">
-        <option value="cursada">Facultad</option>
         <option value="estudio">Estudio</option>
         <option value="gym">Gimnasio</option>
         <option value="laburo">Laburo</option>
-        <option value="boot">boot.dev</option>
         <option value="typing">Mecanografía</option>
         <option value="rutina" selected>Comida / rutina</option>
         <option value="libre">Libre</option>
@@ -75,14 +75,13 @@
       <button class="addbtn" id="daddtoggle">+ Agregar actividad fija</button>
       <div class="addform" id="daddform" hidden>
         <div class="hint" id="daddhint"></div>
-        <input type="time" id="dtime" value="12:00">
+        <label class="tlbl">Desde<input type="time" id="dtime" value="12:00"></label>
+        <label class="tlbl">Hasta<input type="time" id="dend" value="13:00"></label>
         <input type="text" id="dlabel" placeholder="Qué actividad" autocomplete="off">
         <select id="dkind">
-          <option value="cursada">Facultad</option>
           <option value="estudio">Estudio</option>
           <option value="gym">Gimnasio</option>
           <option value="laburo">Laburo</option>
-          <option value="boot">boot.dev</option>
           <option value="typing">Mecanografía</option>
           <option value="rutina" selected>Comida / rutina</option>
           <option value="libre">Libre</option>
@@ -97,6 +96,11 @@
   <section class="panel" id="panel-estudio">
     <div class="dayhead"><h2>Estudio de hoy</h2><span class="tag" id="estudiodate"></span></div>
     <p class="lead">Elegí de tus pendientes de facultad qué vas a hacer hoy, o sumá algo puntual. Al marcarlo hecho, se tacha también en pendientes.</p>
+    <div class="planrow">
+      <button class="btn planbtn" id="armarEstudio">▸ Armar mi estudio de la semana</button>
+      <span class="planhint">Reparte tus pendientes de facultad en los bloques de estudio de cada día, priorizando lo que vence antes.</span>
+    </div>
+    <div class="planmsg" id="planmsg" hidden></div>
     <ul class="list" id="estlist"></ul>
     <div class="pool">
       <div class="poolhead">Sumar de pendientes de facultad</div>
@@ -106,6 +110,14 @@
       <input type="text" id="estinput" placeholder="Algo puntual que no está en pendientes" autocomplete="off">
       <button class="btn" id="estadd">Agregar</button>
     </div>
+  </section>
+
+  <section class="panel" id="panel-materias">
+    <div class="gymhead">
+      <p class="lead" style="margin:0">Las materias que estás cursando y sus fechas (parciales, entregas, clases). Se usan para etiquetar tus pendientes y para priorizar qué estudiar primero.</p>
+      <button class="btn" id="addmateria">+ Materia</button>
+    </div>
+    <div id="matwrap"></div>
   </section>
 
   <section class="panel" id="panel-gym">
@@ -144,6 +156,22 @@
         <button data-c="otro">Otra</button>
       </div>
       <button class="btn" id="pendadd">Agregar</button>
+    </div>
+    <div class="addrow facurow" id="pendfacu">
+      <label class="flbl">Materia
+        <select id="pendmat"></select>
+      </label>
+      <label class="flbl">Horas aprox.
+        <select id="pendhoras">
+          <option value="0.5">½ h</option>
+          <option value="1" selected>1 h</option>
+          <option value="1.5">1½ h</option>
+          <option value="2">2 h</option>
+          <option value="3">3 h</option>
+          <option value="4">4 h</option>
+          <option value="6">6 h</option>
+        </select>
+      </label>
     </div>
     <div id="pendlist"></div>
   </section>

@@ -202,6 +202,52 @@
   #demoBar .demoBtn:disabled{opacity:.6;cursor:default}
   body.has-demobar .wrap{padding-bottom:120px}
 
+  /* etiquetas de hora (Desde/Hasta) en los add-forms */
+  .tlbl{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-dim)}
+  .tlbl input[type=time]{flex:none}
+  /* fin del bloque, bajo la hora de inicio */
+  .block .time .tend{display:block;font-size:11px;color:var(--muted-dim);font-weight:400}
+
+  /* ítems de estudio dentro de Hoy */
+  .block.estblock::after{content:"";position:absolute;left:-2px;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--c-func);opacity:.45}
+  .block.estblock .time{color:var(--c-func)}
+  .block.estblock.done::after{opacity:.2}
+
+  /* badges en listas (franja horaria / materia / horas) */
+  .eslot,.mbadge,.hbadge{font-family:var(--mono);font-size:10px;letter-spacing:.03em;padding:1px 6px;border-radius:5px;margin-left:8px;vertical-align:middle;white-space:nowrap;display:inline-block}
+  .eslot{color:var(--muted);border:1px solid var(--line)}
+  .mbadge{color:var(--c-func);border:1px solid var(--accent-line)}
+  .hbadge{color:var(--muted);background:var(--surface-2)}
+
+  /* botón / mensaje "Armar mi estudio" */
+  .planrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+  .planbtn{white-space:nowrap}
+  .planbtn:disabled{opacity:.6;cursor:default}
+  .planhint{font-size:12.5px;color:var(--muted-dim);flex:1;min-width:180px}
+  .planmsg{font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--line-soft);border-radius:10px;padding:10px 13px;margin-bottom:14px}
+
+  /* fila de facultad en Pendientes (materia + horas) */
+  .facurow{margin-top:-8px;align-items:flex-end}
+  .flbl{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-dim)}
+  .flbl select{font-family:var(--body);font-size:14px;text-transform:none;letter-spacing:0;color:var(--text)}
+
+  /* Materias */
+  input[type=date]{background:var(--surface-2);border:1px solid var(--line);color:var(--text);font-family:var(--mono);font-size:13px;padding:9px 11px;border-radius:9px}
+  .matcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+  .matcard .dtop{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .matcard .matname{flex:1;font-family:var(--disp);font-weight:600;font-size:16px;background:transparent;border:0;border-bottom:1px solid var(--line-soft);border-radius:0;padding:6px 2px}
+  .matcard .matname:focus{outline:0;border-bottom-color:var(--amber)}
+  .matnext{font-family:var(--mono);font-size:11px;color:var(--muted);margin:0 0 12px 2px;letter-spacing:.02em}
+  .evrow{display:flex;gap:8px;align-items:center;padding:5px 0}
+  .evrow .evtipo{flex:0 0 130px}
+  .evrow .evdate{flex:1;min-width:0}
+
+  /* resumen de estudio en las tarjetas de Semana */
+  .wsep{font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--c-func);margin:8px 0 2px;padding-top:8px;border-top:1px dashed var(--line-soft)}
+  .wrow.wstudy{border-top:0;padding:3px 0}
+  .wrow.wstudy .l{color:var(--c-func)}
+  .wrow.wstudy.done .l{color:var(--muted-dim);text-decoration:line-through;text-decoration-color:var(--line)}
+
   /* ============ TEMAS ============ (el tema "code" es el :root por defecto) */
   /* Dracula */
   :root[data-theme="dracula"]{
