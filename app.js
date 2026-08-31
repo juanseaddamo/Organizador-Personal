@@ -281,7 +281,7 @@ const dowToDk={};(function(){for(let off=0;off<7;off++){const dt=new Date(now.ge
 
 /* ---------- horario por defecto (se guarda una vez, después es editable) ---------- */
 let notes={}; // notas por día — se cargan por usuario desde la BD (vacío por defecto)
-const KLABEL={cursada:'Facultad',gym:'Gym',estudio:'Estudio',laburo:'Laburo',boot:'boot.dev',typing:'Mecanografía',rutina:'Rutina',libre:'Libre',dormir:'Descanso'};
+const KLABEL={cursada:'Facultad',cursar:'Cursada',estudio:'Estudio',gym:'Gym',laburo:'Laburo',boot:'boot.dev',typing:'Mecanografía',rutina:'Rutina',libre:'Libre',dormir:'Descanso'};
 const RAW={0:[],1:[],2:[],3:[],4:[],5:[],6:[]}; // horario vacío por defecto: cada usuario arma el suyo
 function buildDefault(){const o={};for(const d in RAW){o[d]=RAW[d].map(b=>({id:genId(),time:b[0],label:b[1],kind:b[2]}));}return o;}
 

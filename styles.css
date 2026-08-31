@@ -58,7 +58,8 @@
   .label{font-size:15px;font-weight:450}
   .kind{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-dim);margin-top:3px}
   /* cada categoría = un token de sintaxis */
-  .kind.k-cursada{color:var(--c-keyword)}   /* Facultad  → keyword */
+  .kind.k-cursada{color:var(--c-keyword)}   /* Facultad (legacy) → keyword */
+  .kind.k-cursar{color:var(--c-keyword)}     /* Cursada/clase → keyword (NO cuenta como estudio) */
   .kind.k-estudio{color:var(--c-func)}       /* Estudio   → función */
   .kind.k-gym{color:var(--c-tag)}            /* Gym       → tag/rojo */
   .kind.k-laburo{color:var(--c-class)}       /* Laburo    → clase/amarillo */
