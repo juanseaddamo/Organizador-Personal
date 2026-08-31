@@ -563,6 +563,23 @@ async function armarEstudio(){
   }
 }
 document.getElementById('armarEstudio').addEventListener('click',armarEstudio);
+// revierte la auto-asignación: borra los ítems auto de los próximos 7 días (deja los manuales intactos)
+async function revertirEstudio(){
+  const btn=document.getElementById('revertirEstudio'); if(btn)btn.disabled=true;
+  let borradas=0;
+  for(let off=0;off<7;off++){
+    const dk=dowToDk[(dow+off)%7];
+    const arr=(await store.get('estudio:'+dk))||[];
+    const kept=arr.filter(x=>!x.auto);
+    if(kept.length!==arr.length){ borradas+=arr.length-kept.length; await store.set('estudio:'+dk,kept); if(dk===TODAY) est=kept; }
+  }
+  await loadWeekEst();
+  renderEst();await renderHoy();renderSemana();updateRing();
+  if(btn)btn.disabled=false;
+  const msg=document.getElementById('planmsg');
+  if(msg){ msg.textContent=borradas?('Revertí la asignación: borré '+borradas+' tarea(s) auto-asignada(s) de la semana. Tus ítems cargados a mano quedaron intactos.'):'No había tareas auto-asignadas para revertir.'; msg.hidden=false; }
+}
+document.getElementById('revertirEstudio').addEventListener('click',revertirEstudio);
 
 /* ---------- Gym (rutina editable) ---------- */
 let gymT;function saveGym(){clearTimeout(gymT);gymT=setTimeout(()=>store.set('gym',gym),350);}
