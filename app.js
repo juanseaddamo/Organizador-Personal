@@ -361,12 +361,24 @@ function updateRing(){
 // add form
 const addform=document.getElementById('addform');
 document.getElementById('addtoggle').addEventListener('click',()=>{addform.hidden=!addform.hidden;if(!addform.hidden)document.getElementById('nlabel').focus();});
-document.getElementById('addhint').textContent='Queda fija todos los '+DIAS[dow].toLowerCase()+'.';
+document.getElementById('addhint').textContent='Elegí en qué días queda fija (por defecto, hoy).';
+// selector de días: hoy preseleccionado
+const ndays=document.getElementById('ndays');
+ndays.querySelectorAll('button').forEach(b=>{
+  if(+b.dataset.d===dow)b.classList.add('on');
+  b.addEventListener('click',()=>b.classList.toggle('on'));
+});
+function selectedDays(){
+  const ds=[...ndays.querySelectorAll('button.on')].map(b=>+b.dataset.d);
+  return ds.length?ds:[dow];
+}
 document.getElementById('ncancel').addEventListener('click',()=>{addform.hidden=true;});
 document.getElementById('nsave').addEventListener('click',()=>{
   const t=document.getElementById('ntime').value, e=document.getElementById('nend').value, l=document.getElementById('nlabel').value.trim(), k=document.getElementById('nkind').value;
   if(!t||!l)return;
-  schedule[dow].push({id:genId(),time:t,end:e||minsToHM(mins(t)+60),label:l,kind:k});sortDay(dow);store.set('schedule',schedule);
+  const end=e||minsToHM(mins(t)+60);
+  selectedDays().forEach(d=>{(schedule[d]||(schedule[d]=[])).push({id:genId(),time:t,end:end,label:l,kind:k});sortDay(d);});
+  store.set('schedule',schedule);
   document.getElementById('nlabel').value='';addform.hidden=true;renderHoy();renderSemana();
 });
 document.getElementById('nlabel').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('nsave').click();});

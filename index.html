@@ -49,6 +49,15 @@
     <button class="addbtn" id="addtoggle">+ Agregar actividad fija</button>
     <div class="addform" id="addform" hidden>
       <div class="hint" id="addhint">Queda fija todos los días de este día de la semana.</div>
+      <div class="daysel" id="ndays" role="group" aria-label="Días en que se repite">
+        <button type="button" data-d="1">L</button>
+        <button type="button" data-d="2">M</button>
+        <button type="button" data-d="3">M</button>
+        <button type="button" data-d="4">J</button>
+        <button type="button" data-d="5">V</button>
+        <button type="button" data-d="6">S</button>
+        <button type="button" data-d="0">D</button>
+      </div>
       <label class="tlbl">Desde<input type="time" id="ntime" value="12:00"></label>
       <label class="tlbl">Hasta<input type="time" id="nend" value="13:00"></label>
       <input type="text" id="nlabel" placeholder="Qué actividad" autocomplete="off">
