@@ -515,7 +515,14 @@ async function armarEstudio(){
     const preserved=existing.filter(x=>!(x.auto&&!x.done)); // se mantienen los manuales y los ya hechos
     const occ=preserved.filter(x=>x.start&&x.end).map(x=>({s:mins(x.start),e:mins(x.end)}));
     const free=subtractOccupied(estudioSlots(dw),occ);
-    days.push({dk,free,remaining:free.reduce((s,iv)=>s+(iv.e-iv.s),0),preserved});
+    days.push({dk,dw,free,slotMin:estudioSlots(dw).reduce((s,iv)=>s+(iv.e-iv.s),0),remaining:free.reduce((s,iv)=>s+(iv.e-iv.s),0),preserved});
+  }
+  // sin bloques de tipo Estudio en el horario -> no hay dónde ubicar; avisar y no tocar nada
+  const capTotal=days.reduce((s,d)=>s+d.slotMin,0);
+  if(capTotal===0){
+    const msg0=document.getElementById('planmsg');
+    if(msg0){msg0.textContent='No encontré bloques de tipo Estudio en tu horario. En “Hoy → + Agregar actividad fija” cargá tus espacios de estudio con categoría Estudio (con hora de inicio y fin) y volvé a tocar este botón.';msg0.hidden=false;}
+    if(btn)btn.disabled=false; return;
   }
   // 2) tareas de facu pendientes, ordenadas por urgencia (materia con evento más próximo primero)
   const tasks=pend.filter(p=>p.cat==='facu'&&!p.done)
@@ -548,9 +555,10 @@ async function armarEstudio(){
   if(btn)btn.disabled=false;
   const msg=document.getElementById('planmsg');
   if(msg){
+    const capH=Math.round(capTotal/6)/10; // horas de estudio disponibles en la semana
     if(!tasks.length) msg.textContent='No hay pendientes de facultad para repartir. Cargalos en la pestaña Pendientes (con su materia y horas).';
-    else if(overflow) msg.textContent='Repartí lo que entró. '+overflow+' tarea(s) no entraron en el tiempo de estudio de la semana — sumá bloques de tipo Estudio en tu horario o bajá las horas.';
-    else msg.textContent='Listo — repartí tus '+tasks.length+' pendiente(s) de facultad en la semana, priorizando lo que vence antes.';
+    else if(overflow) msg.textContent='Repartí lo que entró en tus '+capH+' h de estudio de la semana. '+overflow+' tarea(s) no entraron — sumá bloques de tipo Estudio en tu horario o bajá las horas.';
+    else msg.textContent='Listo — repartí tus '+tasks.length+' pendiente(s) de facultad dentro de tus bloques de Estudio ('+capH+' h esta semana), priorizando lo que vence antes.';
     msg.hidden=false;
   }
 }
