@@ -206,9 +206,11 @@
   .tlbl{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-dim)}
   .tlbl input[type=time]{flex:none}
   /* selector de días (repetir actividad en varios días) */
-  .daysel{flex-basis:100%;display:flex;gap:5px;margin:-2px 0 4px}
-  .daysel button{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);width:30px;height:30px;border-radius:8px;cursor:pointer;transition:all .15s}
-  .daysel button.on{background:var(--amber);color:var(--bg);border-color:var(--amber);font-weight:600}
+  .daysel{flex-basis:100%;display:flex;gap:6px;margin:2px 0 6px;flex-wrap:wrap}
+  .daysel button{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);width:34px;height:34px;border-radius:10px;cursor:pointer;transition:transform .12s ease,background .15s,color .15s,border-color .15s,box-shadow .15s}
+  .daysel button:hover{color:var(--text);border-color:var(--accent-line);transform:translateY(-1px)}
+  .daysel button.on{background:var(--amber);color:var(--bg);border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-dim)}
+  .daysel button.on:hover{color:var(--bg);transform:translateY(-1px)}
   .daysel button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
   /* fin del bloque, bajo la hora de inicio */
   .block .time .tend{display:block;font-size:11px;color:var(--muted-dim);font-weight:400}

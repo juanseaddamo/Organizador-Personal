@@ -360,18 +360,19 @@ function updateRing(){
 }
 // add form
 const addform=document.getElementById('addform');
-document.getElementById('addtoggle').addEventListener('click',()=>{addform.hidden=!addform.hidden;if(!addform.hidden)document.getElementById('nlabel').focus();});
 document.getElementById('addhint').textContent='Elegí en qué días queda fija (por defecto, hoy).';
-// selector de días: hoy preseleccionado
+// selector de días
 const ndays=document.getElementById('ndays');
+function resetDays(){ ndays.querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.d===dow)); }
 ndays.querySelectorAll('button').forEach(b=>{
-  if(+b.dataset.d===dow)b.classList.add('on');
   b.addEventListener('click',()=>b.classList.toggle('on'));
 });
+resetDays();
 function selectedDays(){
   const ds=[...ndays.querySelectorAll('button.on')].map(b=>+b.dataset.d);
   return ds.length?ds:[dow];
 }
+document.getElementById('addtoggle').addEventListener('click',()=>{addform.hidden=!addform.hidden;if(!addform.hidden){resetDays();document.getElementById('nlabel').focus();}});
 document.getElementById('ncancel').addEventListener('click',()=>{addform.hidden=true;});
 document.getElementById('nsave').addEventListener('click',()=>{
   const t=document.getElementById('ntime').value, e=document.getElementById('nend').value, l=document.getElementById('nlabel').value.trim(), k=document.getElementById('nkind').value;
