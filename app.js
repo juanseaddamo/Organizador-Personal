@@ -481,7 +481,11 @@ function renderPool(){
   if(!pool.length){w.innerHTML='<div class="poolempty">No hay pendientes de facultad sin elegir. Cargá algunos en la pestaña Pendientes.</div>';return;}
   pool.forEach(p=>{
     const row=document.createElement('div');row.className='poolrow';
-    row.innerHTML='<span>'+esc(p.text)+'</span><button class="poolbtn">+ Hoy</button>';
+    const mat=matById(p.matId);
+    let meta='';
+    if(mat&&mat.name)meta+='<span class="mbadge">'+esc(mat.name)+'</span>';
+    if(p.horas)meta+='<span class="hbadge">'+fmtHoras(p.horas)+'</span>';
+    row.innerHTML='<span class="pooltext">'+esc(p.text)+meta+'</span><button class="poolbtn">+ Hoy</button>';
     row.querySelector('.poolbtn').addEventListener('click',()=>{est.unshift({id:genId(),text:p.text,done:false,pid:p.id,matId:p.matId||null});store.set('estudio:'+TODAY,est);renderEst();renderHoy();updateRing();});
     w.appendChild(row);
   });
