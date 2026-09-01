@@ -222,10 +222,11 @@
   .block.estblock.done::after{opacity:.2}
 
   /* badges en listas (franja horaria / materia / horas) */
-  .eslot,.mbadge,.hbadge{font-family:var(--mono);font-size:10px;letter-spacing:.03em;padding:1px 6px;border-radius:5px;margin-left:8px;vertical-align:middle;white-space:nowrap;display:inline-block}
+  .eslot,.mbadge,.hbadge,.dbadge{font-family:var(--mono);font-size:10px;letter-spacing:.03em;padding:1px 6px;border-radius:5px;margin-left:8px;vertical-align:middle;white-space:nowrap;display:inline-block}
   .eslot{color:var(--muted);border:1px solid var(--line)}
   .mbadge{color:var(--c-func);border:1px solid var(--accent-line)}
   .hbadge{color:var(--muted);background:var(--surface-2)}
+  .dbadge{color:var(--c-string);border:1px solid var(--line-soft)}
 
   /* botón / mensaje "Armar mi estudio" */
   .planrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px}

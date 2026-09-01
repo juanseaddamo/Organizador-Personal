@@ -253,6 +253,9 @@ const now=new Date();
 const dow=now.getDay();
 function dkey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 const TODAY=dkey(now);
+function fmtDkey(dk){if(!dk)return'';const p=dk.split('-');return (+p[2])+' '+MESES[(+p[1])-1];}
+// marca/desmarca un pendiente y registra la fecha en que se completó (doneAt)
+function setPendDone(pp,val){pp.done=val;if(val){if(!pp.doneAt)pp.doneAt=TODAY;}else{delete pp.doneAt;}}
 const hr=now.getHours();
 const _hello=document.getElementById('hello');
 const _greet=(hr<6?'Buenas noches':hr<13?'Buen día':hr<20?'Buenas tardes':'Buenas noches');
@@ -342,7 +345,7 @@ async function renderHoy(){
         '<button class="del" title="Borrar" aria-label="Borrar">×</button></div>';
       el.querySelector('.check').addEventListener('click',()=>{
         p.done=!p.done;
-        if(p.pid){const pp=pend.find(x=>x.id===p.pid);if(pp){pp.done=p.done;store.set('pendientes',pend);renderPend();}}
+        if(p.pid){const pp=pend.find(x=>x.id===p.pid);if(pp){setPendDone(pp,p.done);store.set('pendientes',pend);renderPend();}}
         store.set('estudio:'+TODAY,est);renderEst();renderHoy();updateRing();
       });
       el.querySelector('.del').addEventListener('click',()=>{est=est.filter(x=>x.id!==p.id);store.set('estudio:'+TODAY,est);renderEst();renderHoy();updateRing();});
@@ -466,7 +469,7 @@ function renderEst(){
     li.innerHTML=checkSVG()+'<span class="ptext">'+esc(p.text)+meta+'</span><button class="del" aria-label="Borrar">×</button>';
     li.querySelector('.check').addEventListener('click',()=>{
       p.done=!p.done;
-      if(p.pid){const pp=pend.find(x=>x.id===p.pid);if(pp){pp.done=p.done;store.set('pendientes',pend);renderPend();}}
+      if(p.pid){const pp=pend.find(x=>x.id===p.pid);if(pp){setPendDone(pp,p.done);store.set('pendientes',pend);renderPend();}}
       store.set('estudio:'+TODAY,est);renderEst();renderHoy();updateRing();
     });
     li.querySelector('.del').addEventListener('click',()=>{est=est.filter(x=>x.id!==p.id);store.set('estudio:'+TODAY,est);renderEst();renderHoy();updateRing();});
@@ -677,8 +680,9 @@ function pendItem(p){
     if(mat&&mat.name)meta+='<span class="mbadge">'+esc(mat.name)+'</span>';
     if(p.horas)meta+='<span class="hbadge">'+fmtHoras(p.horas)+'</span>';
   }
+  if(p.done&&p.doneAt)meta+='<span class="dbadge">✓ '+fmtDkey(p.doneAt)+'</span>';
   li.innerHTML=checkSVG()+'<span class="ptext">'+esc(p.text)+meta+'</span><button class="del" aria-label="Borrar">×</button>';
-  li.querySelector('.check').addEventListener('click',()=>{p.done=!p.done;store.set('pendientes',pend);renderPend();renderEst();});
+  li.querySelector('.check').addEventListener('click',()=>{setPendDone(p,!p.done);store.set('pendientes',pend);renderPend();renderEst();});
   li.querySelector('.del').addEventListener('click',()=>{pend=pend.filter(x=>x.id!==p.id);store.set('pendientes',pend);renderPend();renderEst();});
   return li;
 }
@@ -686,13 +690,21 @@ function renderPend(){
   const w=document.getElementById('pendlist');w.innerHTML='';
   if(!pend.length){w.innerHTML='<div class="empty">Todavía no cargaste nada. Empezá por lo que más te pesa.</div>';renderPool();return;}
   [['facu','Facultad'],['otro','Otras cosas']].forEach(([c,title])=>{
-    const items=pend.filter(p=>p.cat===c);if(!items.length)return;
+    const items=pend.filter(p=>p.cat===c&&!p.done);if(!items.length)return;
     const grp=document.createElement('div');grp.className='pend-group';
     grp.innerHTML='<h4>'+title+'</h4>';
     const ul=document.createElement('ul');ul.className='list';
     items.forEach(p=>ul.appendChild(pendItem(p)));
     grp.appendChild(ul);w.appendChild(grp);
   });
+  const hechos=pend.filter(p=>p.done).sort((a,b)=>(b.doneAt||'').localeCompare(a.doneAt||''));
+  if(hechos.length){
+    const grp=document.createElement('div');grp.className='pend-group pend-done-group';
+    grp.innerHTML='<h4>Realizado</h4>';
+    const ul=document.createElement('ul');ul.className='list';
+    hechos.forEach(p=>ul.appendChild(pendItem(p)));
+    grp.appendChild(ul);w.appendChild(grp);
+  }
   renderPool();
 }
 function addPend(){const i=document.getElementById('pendinput');const t=i.value.trim();if(!t)return;
