@@ -80,6 +80,35 @@ function showDemoBanner(){
     try{ await sb.rpc('reset_demo'); }catch(e){}
     clearLocalCache(); location.reload();
   });
+  buildDemoGuide();
+}
+
+/* ---------- guía de la demo: caja explicativa por pestaña ---------- */
+const DEMO_GUIDE={
+  hoy:['Tu día de un vistazo','Arriba ves tus <b>actividades fijas</b> (las del horario) mezcladas con lo que tenés para <b>estudiar hoy</b>. Tildá lo que vas cumpliendo y el anillo de arriba se llena.','Con <b>+ Agregar actividad fija</b> sumás algo al horario y elegís en qué días de la semana se repite.'],
+  semana:['El mapa de tu semana','Cada tarjeta es un día con sus actividades fijas y el estudio que le tocó. Tocá un día para abrirlo y editar sus bloques.'],
+  estudio:['Acá armás qué estudiar','Sumá pendientes de facultad desde la lista de abajo, o tocá <b>Armar mi estudio de la semana</b>: reparte solos tus pendientes en los huecos de estudio de cada día, priorizando lo que vence antes.','<b>Revertir</b> deshace ese reparto de toda la semana sin tocar lo que cargaste a mano.'],
+  materias:['Tus materias y sus fechas','Cargá cada materia con sus parciales, entregas y clases. Con esas fechas la app sabe qué es más urgente y prioriza tu estudio.'],
+  gym:['Tu rutina de gimnasio','Un bloque por día de entrenamiento. Editá nombres, series y repeticiones tocando cada campo; se guarda solo.'],
+  videos:['Para ver después','Pegá links de YouTube y se guardan con miniatura. Cuando tengas un rato, entrás acá y tocás la miniatura para abrir el video.'],
+  links:['Tus accesos rápidos','Guardá los links que usás siempre (Teams, Notion, la facu…). Poné nombre y dirección y quedan a un clic.'],
+  pend:['Sacate todo de la cabeza','Anotá lo pendiente y separá lo de la <b>facultad</b> de lo demás; a lo de facu le ponés materia y horas estimadas.','Lo que marcás hecho —acá, en Hoy o en Estudio— baja a <b>Realizado</b> con la fecha en que lo completaste.']
+};
+function buildDemoGuide(){
+  if(document.getElementById('demoGuide')) return;
+  const wrap=document.querySelector('.wrap'); if(!wrap) return;
+  const g=document.createElement('aside'); g.id='demoGuide';
+  const nav=wrap.querySelector('nav.tabs');
+  wrap.insertBefore(g,nav?nav.nextSibling:wrap.firstChild);
+  document.body.classList.add('has-demoguide');
+  const cur=document.querySelector('nav.tabs button[aria-selected="true"]');
+  updateDemoGuide(cur?cur.dataset.tab:'hoy');
+}
+function updateDemoGuide(tab){
+  const g=document.getElementById('demoGuide'); if(!g) return;
+  const d=DEMO_GUIDE[tab]; if(!d){g.hidden=true;return;}
+  g.hidden=false;
+  g.innerHTML='<div class="dgTitle">'+esc(d[0])+'</div>'+d.slice(1).map(p=>'<p>'+p+'</p>').join('');
 }
 
 async function initSupabase(){
@@ -816,6 +845,7 @@ document.querySelectorAll('nav.tabs button').forEach(btn=>{
     btn.setAttribute('aria-selected','true');
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
     document.getElementById('panel-'+btn.dataset.tab).classList.add('on');
+    updateDemoGuide(btn.dataset.tab);
     if(btn.dataset.tab==='semana'){document.getElementById('daydetail').hidden=true;document.getElementById('weekgrid').hidden=false;renderSemana();loadWeekEst().then(renderSemana);}
   });
 });

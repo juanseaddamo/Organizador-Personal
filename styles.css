@@ -203,6 +203,18 @@
   #demoBar .demoBtn:disabled{opacity:.6;cursor:default}
   body.has-demobar .wrap{padding-bottom:120px}
 
+  /* guía de la demo: caja explicativa por pestaña */
+  #demoGuide{display:none}
+  body.has-demoguide #demoGuide{display:block;margin:0 0 22px;padding:15px 17px;border:1px solid var(--accent-line);border-radius:14px;background:var(--surface);position:relative}
+  #demoGuide .dgTitle{display:flex;align-items:center;gap:8px;font-family:var(--disp);font-weight:600;font-size:14px;color:var(--amber);margin:0 0 8px}
+  #demoGuide .dgTitle::before{content:"?";flex:0 0 auto;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--bg);background:var(--amber);border-radius:50%}
+  #demoGuide p{margin:0 0 7px;font-size:13px;line-height:1.55;color:var(--muted)}
+  #demoGuide p:last-child{margin-bottom:0}
+  #demoGuide b{color:var(--text);font-weight:600}
+  @media(min-width:1640px){
+    body.has-demoguide #demoGuide{position:fixed;top:112px;left:calc(50% + 540px);width:280px;margin:0;max-height:calc(100vh - 160px);overflow:auto}
+  }
+
   /* etiquetas de hora (Desde/Hasta) en los add-forms */
   .tlbl{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-dim)}
   .tlbl input[type=time]{flex:none}
