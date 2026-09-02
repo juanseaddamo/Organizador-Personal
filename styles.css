@@ -270,6 +270,39 @@
   .wrow.wstudy .l{color:var(--c-func)}
   .wrow.wstudy.done .l{color:var(--muted-dim);text-decoration:line-through;text-decoration-color:var(--line)}
 
+  /* ---------- Calendario ---------- */
+  .calnav{display:flex;align-items:center;gap:10px;margin:2px 0 16px}
+  .calnav .caltitle{font-family:var(--disp);font-size:19px;font-weight:600;letter-spacing:-.01em;min-width:170px}
+  .calarrow{font-family:var(--disp);font-size:20px;line-height:1;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:9px;width:36px;height:36px;cursor:pointer;transition:all .15s}
+  .calarrow:hover{color:var(--text);border-color:var(--muted-dim)}
+  .calnav .calhoy{margin-left:auto}
+  .calwk{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px}
+  .calwk span{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-dim);text-align:center}
+  .calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  .calcell{min-height:96px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 8px 6px;display:flex;flex-direction:column;gap:3px;cursor:pointer;transition:border-color .15s,background .15s;overflow:hidden}
+  .calcell:hover{border-color:var(--muted-dim);background:var(--surface-2)}
+  .calcell.blank{background:transparent;border:0;cursor:default;min-height:0}
+  .calcell.today{border-color:var(--accent-line)}
+  .calcell .cnum{font-family:var(--mono);font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .calcell.today .cnum{color:var(--amber);font-weight:600}
+  .cmk{font-size:11px;line-height:1.25;padding:2px 6px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid var(--line-soft)}
+  .cmk-ev{color:var(--c-tag);border-color:var(--accent-line)}
+  .cmk-task{color:var(--c-number)}
+  .cmk-task.done{color:var(--muted-dim);text-decoration:line-through;text-decoration-color:var(--line)}
+  .cmk-est{color:var(--c-func)}
+  .cmk.cmore{color:var(--muted-dim);border:0;padding:0 6px}
+  .callist{list-style:none;margin:0 0 6px;padding:0;display:flex;flex-direction:column;gap:6px}
+  .callist .calro{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--text);padding:2px 0}
+  .callist .calro .t{font-family:var(--mono);font-size:11.5px;color:var(--muted);flex:0 0 44px}
+  .calpick{flex:1;min-width:200px;font-family:var(--body);font-size:14px}
+  .wsep-task{color:var(--c-number)}
+  .wrow.wtask{border-top:0;padding:3px 0}
+  .wrow.wtask .l{color:var(--c-number)}
+  .wrow.wtask.done .l{color:var(--muted-dim);text-decoration:line-through;text-decoration-color:var(--line)}
+  .cbadge{font-family:var(--mono);font-size:10px;letter-spacing:.03em;padding:1px 6px;border-radius:5px;margin-left:8px;vertical-align:middle;white-space:nowrap;display:inline-block;color:var(--c-number);border:1px solid var(--line)}
+  .kind.k-task{color:var(--c-number)}
+  @media(max-width:640px){ .calcell{min-height:70px} .cmk{font-size:10px} .calnav .caltitle{min-width:0;font-size:16px} }
+
   /* ============ TEMAS ============ (el tema "code" es el :root por defecto) */
   /* Dracula */
   :root[data-theme="dracula"]{

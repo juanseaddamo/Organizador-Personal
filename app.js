@@ -87,6 +87,7 @@ function showDemoBanner(){
 const DEMO_GUIDE={
   hoy:['Tu día de un vistazo','Arriba ves tus <b>actividades fijas</b> (las del horario) mezcladas con lo que tenés para <b>estudiar hoy</b>. Tildá lo que vas cumpliendo y el anillo de arriba se llena.','Con <b>+ Agregar actividad fija</b> sumás algo al horario y elegís en qué días de la semana se repite.'],
   semana:['El mapa de tu semana','Cada tarjeta es un día con sus actividades fijas y el estudio que le tocó. Tocá un día para abrirlo y editar sus bloques.'],
+  cal:['El mes de un vistazo','Cada casilla es un día: ves los parciales y entregas de tus materias, el estudio ubicado y las tareas que le pongas. Tocá un día para abrirlo.','Adentro asignás una <b>tarea nueva</b> o <b>ubicás un pendiente</b> en esa fecha; aparece también en Hoy, Semana y Pendientes.'],
   estudio:['Acá armás qué estudiar','Sumá pendientes de facultad desde la lista de abajo, o tocá <b>Armar mi estudio de la semana</b>: reparte solos tus pendientes en los huecos de estudio de cada día, priorizando lo que vence antes.','<b>Revertir</b> deshace ese reparto de toda la semana sin tocar lo que cargaste a mano.'],
   materias:['Tus materias y sus fechas','Cargá cada materia con sus parciales, entregas y clases. Con esas fechas la app sabe qué es más urgente y prioriza tu estudio.'],
   gym:['Tu rutina de gimnasio','Un bloque por día de entrenamiento. Editá nombres, series y repeticiones tocando cada campo; se guarda solo.'],
@@ -349,6 +350,7 @@ async function renderHoy(){
   const items=[]
     .concat((schedule[dow]||[]).map(b=>({t:'block',ref:b,sortT:mins(b.time)})))
     .concat((est||[]).map(p=>({t:'est',ref:p,sortT:p.start?mins(p.start):999999})))
+    .concat(pend.filter(p=>p.date===TODAY).map(p=>({t:'cal',ref:p,sortT:1e7})))
     .sort((a,b)=>a.sortT-b.sortT);
   const nowM=(hr<5?hr+24:hr)*60+now.getMinutes();
   let nowIdx=-1; items.forEach((it,i)=>{ if(it.sortT<=nowM) nowIdx=i; });
@@ -364,7 +366,7 @@ async function renderHoy(){
       el.querySelector('.check').addEventListener('click',()=>{todayChecks[b.id]=!todayChecks[b.id];store.set('checks:'+TODAY,todayChecks);el.classList.toggle('done',todayChecks[b.id]);updateRing();});
       el.querySelector('.del').addEventListener('click',()=>{schedule[dow]=schedule[dow].filter(x=>x.id!==b.id);store.set('schedule',schedule);renderHoy();renderSemana();});
       rail.appendChild(el);
-    }else{
+    }else if(it.t==='est'){
       const p=it.ref, mat=matById(p.matId);
       const el=document.createElement('div');
       el.className='block estblock'+(p.done?' done':'')+(i===nowIdx?' now':'');
@@ -379,14 +381,24 @@ async function renderHoy(){
       });
       el.querySelector('.del').addEventListener('click',()=>{est=est.filter(x=>x.id!==p.id);store.set('estudio:'+TODAY,est);renderEst();renderHoy();updateRing();});
       rail.appendChild(el);
+    }else{
+      const p=it.ref;
+      const el=document.createElement('div');
+      el.className='block estblock calblock'+(p.done?' done':'')+(i===nowIdx?' now':'');
+      el.innerHTML='<div class="time">—</div><div class="body">'+checkSVG()+
+        '<div class="ttl"><div class="label">'+esc(p.text)+'<span class="nowtag">ahora</span></div><div class="kind k-task">Tarea</div></div>'+
+        '<button class="del" title="Quitar del d\u00eda" aria-label="Quitar del d\u00eda">\u00d7</button></div>';
+      el.querySelector('.check').addEventListener('click',()=>{ setPendDone(p,!p.done); store.set('pendientes',pend); renderPend(); renderHoy(); renderSemana(); updateRing(); });
+      el.querySelector('.del').addEventListener('click',()=>{ delete p.date; store.set('pendientes',pend); renderPend(); renderHoy(); renderSemana(); updateRing(); });
+      rail.appendChild(el);
     }
   });
   updateRing();
 }
 function updateRing(){
-  const list=schedule[dow]||[], estToday=est||[];
-  const total=list.length+estToday.length;
-  const done=list.filter(b=>todayChecks[b.id]).length + estToday.filter(p=>p.done).length;
+  const list=schedule[dow]||[], estToday=est||[], calToday=pend.filter(p=>p.date===TODAY);
+  const total=list.length+estToday.length+calToday.length;
+  const done=list.filter(b=>todayChecks[b.id]).length + estToday.filter(p=>p.done).length + calToday.filter(p=>p.done).length;
   document.getElementById('ringnum').textContent=done+'/'+total;
   const c=131.9;document.querySelector('.ring .prog').style.strokeDashoffset=total?c-(done/total)*c:c;
 }
@@ -426,9 +438,12 @@ function renderSemana(){
     // resumen del estudio auto-asignado / manual de esa fecha (req 2)
     const estItems=(weekEst[dowToDk[d]]||[]);
     const estRows=estItems.map(p=>'<div class="wrow wstudy'+(p.done?' done':'')+'"><span class="t">'+(p.start||'·')+'</span><span class="l">'+esc(p.text)+'</span></div>').join('');
+    const taskItems=pend.filter(p=>p.date===dowToDk[d]);
+    const taskRows=taskItems.map(p=>'<div class="wrow wtask'+(p.done?' done':'')+'"><span class="t">·</span><span class="l">'+esc(p.text)+'</span></div>').join('');
     card.innerHTML='<h3>'+DIAS[d]+(d===dow?'<span class="badge">hoy</span>':'')+'</h3><div class="sub">'+(notes[d]||'')+'</div>'+
       (rows||'<div class="wrow"><span class="l" style="color:var(--muted-dim)">—</span></div>')+
-      (estRows?'<div class="wsep">Estudio</div>'+estRows:'');
+      (estRows?'<div class="wsep">Estudio</div>'+estRows:'')+
+      (taskRows?'<div class="wsep wsep-task">Tareas</div>'+taskRows:'');
     card.addEventListener('click',()=>openDay(d));
     g.appendChild(card);
   });
@@ -713,6 +728,7 @@ function pendItem(p){
     if(mat&&mat.name)meta+='<span class="mbadge">'+esc(mat.name)+'</span>';
     if(p.horas)meta+='<span class="hbadge">'+fmtHoras(p.horas)+'</span>';
   }
+  if(p.date)meta+='<span class="cbadge">📅 '+fmtDkey(p.date)+'</span>';
   const place=(p.cat==='facu'&&!p.done)?pendPlacement(p.id):null;
   if(place){ const lbl=place.dk===TODAY?'Hoy':DIAS[dkToDow(place.dk)].slice(0,3); meta+='<span class="eslot">→ '+lbl+(place.start?' '+place.start:'')+'</span>'; }
   if(p.done&&p.doneAt)meta+='<span class="dbadge">✓ '+fmtDkey(p.doneAt)+'</span>';
@@ -882,6 +898,98 @@ document.getElementById('linkadd').addEventListener('click',addLink);
 document.getElementById('linkname').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('linkurl').focus();});
 document.getElementById('linkurl').addEventListener('keydown',e=>{if(e.key==='Enter')addLink();});
 
+/* ---------- Calendario (vista del mes; asigná tareas a una fecha) ---------- */
+const MESES_L=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS_COR=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+let calY=now.getFullYear(), calM=now.getMonth(), calSel=null;
+// junta todos los ítems de estudio guardados por fecha (para las marcas del mes)
+function estudioByDate(){
+  const map={};
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key&&key.indexOf('org:estudio:')===0){ const dk=key.slice(12); try{const v=JSON.parse(localStorage.getItem(key)); if(Array.isArray(v)&&v.length)map[dk]=v;}catch(e){} }
+    }
+  }catch(e){}
+  if(est&&est.length)map[TODAY]=est; else delete map[TODAY];
+  return map;
+}
+// eventos de materias por fecha
+function eventosByDate(){
+  const map={};
+  materias.forEach(m=>(m.eventos||[]).forEach(ev=>{ if(ev.date){ (map[ev.date]||(map[ev.date]=[])).push({tipo:ev.tipo,mat:m.name||''}); } }));
+  return map;
+}
+function tipoLabel(t){ const x=TIPOS.find(z=>z[0]===t); return x?x[1]:t; }
+function fmtCalTitle(dk){ const w=dkToDow(dk), p=dk.split('-'); return DIAS[w]+' '+(+p[2])+' '+MESES[(+p[1])-1]+' '+p[0]; }
+function renderCal(){
+  const v=document.getElementById('calview'); if(!v) return;
+  if(calSel){ renderCalDay(v); return; }
+  const evMap=eventosByDate(), estMap=estudioByDate();
+  const first=new Date(calY,calM,1);
+  const lead=(first.getDay()+6)%7; // huecos antes del día 1 (semana arranca lunes)
+  const dim=new Date(calY,calM+1,0).getDate();
+  let head='<div class="calnav">'+
+    '<button class="calarrow" id="calPrev" aria-label="Mes anterior">‹</button>'+
+    '<div class="caltitle">'+MESES_L[calM]+' '+calY+'</div>'+
+    '<button class="calarrow" id="calNext" aria-label="Mes siguiente">›</button>'+
+    '<button class="btn ghost calhoy" id="calHoy">Hoy</button></div>';
+  let wk='<div class="calwk">'+[1,2,3,4,5,6,0].map(d=>'<span>'+DIAS_COR[d]+'</span>').join('')+'</div>';
+  let cells='';
+  for(let i=0;i<lead;i++) cells+='<div class="calcell blank"></div>';
+  for(let day=1;day<=dim;day++){
+    const dk=calY+'-'+String(calM+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+    const isToday=dk===TODAY;
+    const marks=[];
+    (evMap[dk]||[]).forEach(e=>marks.push('<span class="cmk cmk-ev">'+esc(tipoLabel(e.tipo))+(e.mat?' · '+esc(e.mat):'')+'</span>'));
+    pend.filter(p=>p.date===dk).forEach(p=>marks.push('<span class="cmk cmk-task'+(p.done?' done':'')+'">'+esc(p.text)+'</span>'));
+    const en=(estMap[dk]||[]).length; if(en)marks.push('<span class="cmk cmk-est">'+en+' estudio</span>');
+    let shown=marks.slice(0,3).join(''); if(marks.length>3)shown+='<span class="cmk cmore">+'+(marks.length-3)+'</span>';
+    cells+='<div class="calcell'+(isToday?' today':'')+'" data-dk="'+dk+'"><span class="cnum">'+day+'</span>'+shown+'</div>';
+  }
+  v.innerHTML=head+wk+'<div class="calgrid">'+cells+'</div>';
+  document.getElementById('calPrev').addEventListener('click',()=>{ calM--; if(calM<0){calM=11;calY--;} renderCal(); });
+  document.getElementById('calNext').addEventListener('click',()=>{ calM++; if(calM>11){calM=0;calY++;} renderCal(); });
+  document.getElementById('calHoy').addEventListener('click',()=>{ calY=now.getFullYear(); calM=now.getMonth(); renderCal(); });
+  v.querySelectorAll('.calcell[data-dk]').forEach(c=>c.addEventListener('click',()=>{ calSel=c.dataset.dk; renderCal(); }));
+}
+function renderCalDay(v){
+  const dk=calSel;
+  const evs=(eventosByDate()[dk]||[]);
+  const ests=(estudioByDate()[dk]||[]);
+  const tasks=pend.filter(p=>p.date===dk);
+  let h='<button class="backbtn" id="calBack">← Volver al calendario</button>';
+  h+='<div class="dayhead"><h2>'+esc(fmtCalTitle(dk))+'</h2>'+(dk===TODAY?'<span class="badge">hoy</span>':'')+'</div>';
+  if(evs.length){ h+='<div class="wsep">Materias</div><ul class="callist">'+evs.map(e=>'<li class="calro"><span class="cmk cmk-ev">'+esc(tipoLabel(e.tipo))+'</span> '+esc(e.mat||'')+'</li>').join('')+'</ul>'; }
+  if(ests.length){ h+='<div class="wsep">Estudio</div><ul class="callist">'+ests.map(e=>'<li class="calro"><span class="t">'+(e.start||'·')+'</span> '+esc(e.text)+'</li>').join('')+'</ul>'; }
+  h+='<div class="wsep wsep-task">Tareas del día</div>';
+  h+='<ul class="list" id="caltasks"></ul>';
+  h+='<div class="addrow"><input type="text" id="calinput" placeholder="Agregar una tarea a este día" autocomplete="off"><button class="btn" id="caladd">Agregar</button></div>';
+  const others=pend.filter(p=>!p.done&&p.date!==dk);
+  if(others.length){
+    h+='<div class="pool"><div class="poolhead">Ubicar un pendiente existente en este día</div><div class="addrow"><select id="calpick" class="calpick"><option value="">— elegí un pendiente —</option>'+
+      others.map(p=>'<option value="'+p.id+'">'+esc(p.text)+(p.date?' (mové de '+esc(fmtDkey(p.date))+')':'')+'</option>').join('')+'</select></div></div>';
+  }
+  v.innerHTML=h;
+  document.getElementById('calBack').addEventListener('click',()=>{ calSel=null; renderCal(); });
+  const ul=document.getElementById('caltasks');
+  if(!tasks.length){ ul.innerHTML='<div class="empty">Nada asignado a este día. Agregá una tarea o ubicá un pendiente.</div>'; }
+  else tasks.forEach(p=>{
+    const li=document.createElement('li'); if(p.done)li.classList.add('done');
+    li.innerHTML=checkSVG()+'<span class="ptext">'+esc(p.text)+'</span><button class="del" title="Quitar del día" aria-label="Quitar del día">×</button>';
+    li.querySelector('.check').addEventListener('click',()=>{ setPendDone(p,!p.done); store.set('pendientes',pend); calRefresh(); });
+    li.querySelector('.del').addEventListener('click',()=>{ delete p.date; store.set('pendientes',pend); calRefresh(); });
+    ul.appendChild(li);
+  });
+  const add=()=>{ const i=document.getElementById('calinput'); const t=i.value.trim(); if(!t)return; pend.unshift({id:genId(),text:t,done:false,cat:'otro',date:dk}); i.value=''; store.set('pendientes',pend); calRefresh(); };
+  document.getElementById('caladd').addEventListener('click',add);
+  document.getElementById('calinput').addEventListener('keydown',e=>{ if(e.key==='Enter')add(); });
+  const pick=document.getElementById('calpick');
+  if(pick)pick.addEventListener('change',()=>{ const p=pend.find(x=>x.id===pick.value); if(p){ p.date=dk; store.set('pendientes',pend); calRefresh(); } });
+}
+// refresca el calendario y todo lo que refleja una tarea con fecha
+function calRefresh(){ renderCal(); renderPend(); renderSemana(); renderHoy(); updateRing(); }
+
 /* ---------- tabs ---------- */
 document.querySelectorAll('nav.tabs button').forEach(btn=>{
   btn.addEventListener('click',()=>{
@@ -891,6 +999,7 @@ document.querySelectorAll('nav.tabs button').forEach(btn=>{
     document.getElementById('panel-'+btn.dataset.tab).classList.add('on');
     updateDemoGuide(btn.dataset.tab);
     if(btn.dataset.tab==='semana'){document.getElementById('daydetail').hidden=true;document.getElementById('weekgrid').hidden=false;renderSemana();loadWeekEst().then(renderSemana);}
+    if(btn.dataset.tab==='cal'){calSel=null;renderCal();}
   });
 });
 
@@ -915,7 +1024,7 @@ async function bootApp(){
   notes=(await store.get('notes'))||{};
   materias=(await store.get('materias'))||[];
   await loadPend();await loadEst();await loadWeekEst();renderPend();
-  await renderHoy();renderSemana();renderGym();renderMaterias();await loadVideos();await loadLinks();
+  await renderHoy();renderSemana();renderGym();renderMaterias();renderCal();await loadVideos();await loadLinks();
   wireNote(document.getElementById('todaytag'),()=>dow);
   wireNote(document.getElementById('dnote'),()=>selectedDay);
   // link discreto para cerrar sesión (útil en dispositivos compartidos)
