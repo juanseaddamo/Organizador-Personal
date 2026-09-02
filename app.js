@@ -14,6 +14,7 @@ const SUPABASE_KEY='sb_publishable_J8jK_Vwy7qcFANilxbzFhg_yB1jQwax';
 let sb=null, sbUser=null, booted=false, loginShown=false;
 const DEMO_EMAIL='demo@organizador.app'; // si tu usuario demo tiene otro email, cambialo acá y en reset_demo()
 let isDemo=false;
+let _authMethod='login';
 let _readyResolve; const ready=new Promise(r=>_readyResolve=r);
 
 // baja el estado de la nube y lo vuelca a mem + localStorage
@@ -53,6 +54,7 @@ function schedulePush(){ if(!sb||!sbUser) return; clearTimeout(_pushT); _pushT=s
 async function afterAuth(){
   hideLogin();
   isDemo=((sbUser.email||'').toLowerCase()===DEMO_EMAIL);
+  track('auth',{method:isDemo?'demo':_authMethod});
   if(isDemo){ try{ await sb.rpc('reset_demo'); }catch(e){ console.warn('reset_demo',e); } } // demo: siempre arranca de la semilla
   // "fresh" = cambió de cuenta en este navegador (o es la demo): hay que descartar la cache local ajena
   const fresh = isDemo || (localStorage.getItem('org_uid')!==sbUser.id);
@@ -202,7 +204,7 @@ function showLogin(){
       if(mode==='signup'){
         if(!emailDomainOk(em)){ err('Usá un email de Gmail, Hotmail, Yahoo, Outlook o iCloud.'); btn.disabled=false; return; }
         if(pw!==(pass2.value||'')){ err('Las contraseñas no coinciden.'); btn.disabled=false; return; }
-        info('Creando cuenta…');
+        _authMethod='signup'; info('Creando cuenta…');
         const {error}=await sb.auth.signUp({email:em,password:pw});
         if(error){
           const m=/already registered|already exists/i.test(error.message)?'Ese email ya tiene cuenta. Entrá con tu contraseña.':'Error: '+error.message;
@@ -210,7 +212,7 @@ function showLogin(){
         }
         // con confirmación desactivada, signUp deja sesión y dispara onAuthStateChange → afterAuth
       }else{
-        info('Entrando…');
+        _authMethod='login'; info('Entrando…');
         const {error}=await sb.auth.signInWithPassword({email:em,password:pw});
         if(error){
           const m=/invalid login credentials/i.test(error.message)?'Email o contraseña incorrectos.':'Error: '+error.message;
@@ -275,6 +277,8 @@ document.getElementById('logoutBtn').addEventListener('click',()=>{ if(confirm('
 let saveTimer;
 function flashSaved(){const n=document.getElementById('savenote');n.classList.add('show');clearTimeout(saveTimer);saveTimer=setTimeout(()=>n.classList.remove('show'),1200);}
 let _idc=0; function genId(){return 'x'+Date.now().toString(36)+(_idc++).toString(36)+Math.random().toString(36).slice(2,5);}
+// analytics: empuja un evento al dataLayer de GTM (solo enums/números/bools, nunca texto libre ni datos personales)
+function track(ev,params){ try{ (window.dataLayer=window.dataLayer||[]).push(Object.assign({event:ev},params||{})); }catch(e){} }
 
 /* ---------- fecha ---------- */
 const DIAS=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -376,6 +380,7 @@ async function renderHoy(){
         '<button class="del" title="Borrar" aria-label="Borrar">×</button></div>';
       el.querySelector('.check').addEventListener('click',()=>{
         p.done=!p.done;
+        if(p.done)track('task_complete',{source:'hoy'});
         if(p.pid){const pp=pend.find(x=>x.id===p.pid);if(pp){setPendDone(pp,p.done);store.set('pendientes',pend);renderPend();}}
         store.set('estudio:'+TODAY,est);renderEst();renderHoy();updateRing();
       });
@@ -388,7 +393,7 @@ async function renderHoy(){
       el.innerHTML='<div class="time">—</div><div class="body">'+checkSVG()+
         '<div class="ttl"><div class="label">'+esc(p.text)+'<span class="nowtag">ahora</span></div><div class="kind k-task">Tarea</div></div>'+
         '<button class="del" title="Quitar del d\u00eda" aria-label="Quitar del d\u00eda">\u00d7</button></div>';
-      el.querySelector('.check').addEventListener('click',()=>{ setPendDone(p,!p.done); store.set('pendientes',pend); renderPend(); renderHoy(); renderSemana(); updateRing(); });
+      el.querySelector('.check').addEventListener('click',()=>{ setPendDone(p,!p.done); if(p.done)track('task_complete',{source:'hoy'}); store.set('pendientes',pend); renderPend(); renderHoy(); renderSemana(); updateRing(); });
       el.querySelector('.del').addEventListener('click',()=>{ delete p.date; store.set('pendientes',pend); renderPend(); renderHoy(); renderSemana(); updateRing(); });
       rail.appendChild(el);
     }
@@ -424,6 +429,7 @@ document.getElementById('nsave').addEventListener('click',()=>{
   const end=e||minsToHM(mins(t)+60);
   selectedDays().forEach(d=>{(schedule[d]||(schedule[d]=[])).push({id:genId(),time:t,end:end,label:l,kind:k});sortDay(d);});
   store.set('schedule',schedule);
+  track('schedule_block_add',{kind:k});
   document.getElementById('nlabel').value='';addform.hidden=true;renderHoy();renderSemana();
 });
 document.getElementById('nlabel').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('nsave').click();});
@@ -495,6 +501,7 @@ document.getElementById('dsave').addEventListener('click',()=>{
   const t=document.getElementById('dtime').value,e=document.getElementById('dend').value,l=document.getElementById('dlabel').value.trim(),k=document.getElementById('dkind').value;
   if(!t||!l)return;
   schedule[selectedDay].push({id:genId(),time:t,end:e||minsToHM(mins(t)+60),label:l,kind:k});sortDay(selectedDay);store.set('schedule',schedule);
+  track('schedule_block_add',{kind:k});
   document.getElementById('dlabel').value='';daddform.hidden=true;renderDayDetail();renderHoy();
 });
 document.getElementById('dlabel').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('dsave').click();});
@@ -513,6 +520,7 @@ function renderEst(){
     li.innerHTML=checkSVG()+'<span class="ptext">'+esc(p.text)+meta+'</span><button class="del" aria-label="Borrar">×</button>';
     li.querySelector('.check').addEventListener('click',()=>{
       p.done=!p.done;
+      if(p.done)track('task_complete',{source:'estudio'});
       if(p.pid){const pp=pend.find(x=>x.id===p.pid);if(pp){setPendDone(pp,p.done);store.set('pendientes',pend);renderPend();}}
       store.set('estudio:'+TODAY,est);renderEst();renderHoy();updateRing();
     });
@@ -605,6 +613,7 @@ async function armarEstudio(){
   renderEst();await renderHoy();renderSemana();updateRing();
   if(btn)btn.disabled=false;
   const msg=document.getElementById('planmsg');
+  track('study_plan_build',{tasks:tasks.length,overflow:overflow});
   if(msg){
     const capH=Math.round(capTotal/6)/10; // horas de estudio disponibles en la semana
     if(!tasks.length) msg.textContent='No hay pendientes de facultad para repartir. Cargalos en la pestaña Pendientes (con su materia y horas).';
@@ -628,6 +637,7 @@ async function revertirEstudio(){
   renderEst();await renderHoy();renderSemana();updateRing();
   if(btn)btn.disabled=false;
   const msg=document.getElementById('planmsg');
+  track('study_plan_revert',{removed:borradas});
   if(msg){ msg.textContent=borradas?('Revertí la asignación: borré '+borradas+' tarea(s) auto-asignada(s) de la semana. Tus ítems cargados a mano quedaron intactos.'):'No había tareas auto-asignadas para revertir.'; msg.hidden=false; }
 }
 document.getElementById('revertirEstudio').addEventListener('click',revertirEstudio);
@@ -660,7 +670,7 @@ function renderGym(){
     card.appendChild(ae);w.appendChild(card);
   });
 }
-document.getElementById('addday').addEventListener('click',()=>{gym.days.push({id:genId(),name:'Día '+(gym.days.length+1),exs:[]});store.set('gym',gym);renderGym();});
+document.getElementById('addday').addEventListener('click',()=>{gym.days.push({id:genId(),name:'Día '+(gym.days.length+1),exs:[]});track('gym_day_add',{});store.set('gym',gym);renderGym();});
 
 /* ---------- Materias (listado + calendario, req 10) ---------- */
 const TIPOS=[['parcial','Parcial'],['entrega','Entrega'],['clase','Clase'],['final','Final']];
@@ -695,11 +705,11 @@ function renderMaterias(){
       row.appendChild(sel);row.appendChild(dt);row.appendChild(ed);card.appendChild(row);
     });
     const ae=document.createElement('button');ae.className='addex';ae.textContent='+ Fecha';
-    ae.addEventListener('click',()=>{mat.eventos.push({id:genId(),tipo:'parcial',date:''});store.set('materias',materias);renderMaterias();});
+    ae.addEventListener('click',()=>{mat.eventos.push({id:genId(),tipo:'parcial',date:''});track('subject_event_add',{tipo:'parcial'});store.set('materias',materias);renderMaterias();});
     card.appendChild(ae);w.appendChild(card);
   });
 }
-document.getElementById('addmateria').addEventListener('click',()=>{materias.push({id:genId(),name:'',eventos:[]});store.set('materias',materias);renderMaterias();});
+document.getElementById('addmateria').addEventListener('click',()=>{materias.push({id:genId(),name:'',eventos:[]});track('materia_add',{});store.set('materias',materias);renderMaterias();});
 
 /* ---------- Pendientes (facultad / otras) ---------- */
 let pendCat='facu';
@@ -739,7 +749,7 @@ function pendItem(p){
     dsel='<select class="pendday" aria-label="Ubicar en un día">'+opts+'</select>';
   }
   li.innerHTML=checkSVG()+'<span class="ptext">'+esc(p.text)+meta+'</span>'+dsel+'<button class="del" aria-label="Borrar">×</button>';
-  li.querySelector('.check').addEventListener('click',()=>{setPendDone(p,!p.done);store.set('pendientes',pend);renderPend();renderEst();});
+  li.querySelector('.check').addEventListener('click',()=>{setPendDone(p,!p.done);if(p.done)track('task_complete',{source:'pendientes'});store.set('pendientes',pend);renderPend();renderEst();});
   const ds=li.querySelector('.pendday'); if(ds)ds.addEventListener('change',()=>ubicarPend(p,ds.value));
   li.querySelector('.del').addEventListener('click',()=>{pend=pend.filter(x=>x.id!==p.id);store.set('pendientes',pend);renderPend();renderEst();});
   return li;
@@ -768,6 +778,7 @@ function renderPend(){
 function addPend(){const i=document.getElementById('pendinput');const t=i.value.trim();if(!t)return;
   const item={id:genId(),text:t,done:false,cat:pendCat};
   if(pendCat==='facu'){ item.matId=document.getElementById('pendmat').value||null; item.horas=parseFloat(document.getElementById('pendhoras').value)||1; }
+  track('task_add',{category:item.cat,scheduled:false});
   pend.unshift(item);i.value='';store.set('pendientes',pend);renderPend();}
 document.getElementById('pendadd').addEventListener('click',addPend);
 document.getElementById('pendinput').addEventListener('keydown',e=>{if(e.key==='Enter')addPend();});
@@ -779,26 +790,28 @@ async function ubicarPend(p,dk){
   const dayLabel=d=>{ const w=dkToDow(d); return d===TODAY?'hoy':DIAS[w].toLowerCase(); };
   // des-ubicar: sacar toda ubicacion de esta tarea y salir
   if(!dk){
+    track('task_scheduled',{method:'day_picker',fit:'unset'});
     for(let off=0;off<7;off++){ const d=dowToDk[(dow+off)%7]; const arr=(await store.get('estudio:'+d))||[]; const kept=arr.filter(x=>x.pid!==p.id); if(kept.length!==arr.length){ await store.set('estudio:'+d,kept); if(d===TODAY) est=kept; } }
     await loadWeekEst();renderEst();await renderHoy();renderSemana();updateRing();renderPend();
     show('Saqu\u00e9 “'+p.text+'” del horario de estudio.');
     return;
   }
   const dw=dkToDow(dk);
-  if(!estudioSlots(dw).length){ show('El '+dayLabel(dk)+' no ten\u00e9s bloques de tipo Estudio en tu horario. Cargalos en “Hoy → + Agregar actividad fija” (categor\u00eda Estudio) y volv\u00e9 a elegir el d\u00eda.'); renderPend(); return; }
+  if(!estudioSlots(dw).length){ track('task_scheduled',{method:'day_picker',fit:'none'}); show('El '+dayLabel(dk)+' no ten\u00e9s bloques de tipo Estudio en tu horario. Cargalos en “Hoy → + Agregar actividad fija” (categor\u00eda Estudio) y volv\u00e9 a elegir el d\u00eda.'); renderPend(); return; }
   // calcular la ubicacion en el dia elegido (ignorando cualquier ubicacion previa de esta misma tarea)
   const existing=(await store.get('estudio:'+dk))||[];
   const occ=existing.filter(x=>x.pid!==p.id&&x.start&&x.end).map(x=>({s:mins(x.start),e:mins(x.end)}));
   const free=subtractOccupied(estudioSlots(dw),occ);
   let need=Math.max(15,Math.round((p.horas||1)*60)), first=true; const add=[];
   for(const iv of free){ if(need<=0)break; const avail=iv.e-iv.s; if(avail<=0)continue; const take=Math.min(avail,need); add.push({id:genId(),text:p.text+(first?'':' (cont.)'),matId:p.matId||null,start:minsToHM(iv.s),end:minsToHM(iv.s+take),horas:take/60,done:false,pid:p.id}); need-=take; first=false; }
-  if(!add.length){ show('No pude ubicar “'+p.text+'”: el '+dayLabel(dk)+' no te queda hueco libre en los bloques de Estudio. Prob\u00e1 otro d\u00eda o sum\u00e1 tiempo de estudio.'); renderPend(); return; }
+  if(!add.length){ track('task_scheduled',{method:'day_picker',fit:'none'}); show('No pude ubicar “'+p.text+'”: el '+dayLabel(dk)+' no te queda hueco libre en los bloques de Estudio. Prob\u00e1 otro d\u00eda o sum\u00e1 tiempo de estudio.'); renderPend(); return; }
   // confirmar el movimiento: sacar la tarea de toda la semana y escribirla en el dia elegido
   for(let off=0;off<7;off++){ const d=dowToDk[(dow+off)%7]; const arr=(await store.get('estudio:'+d))||[]; const kept=arr.filter(x=>x.pid!==p.id); if(kept.length!==arr.length){ await store.set('estudio:'+d,kept); if(d===TODAY) est=kept; } }
   const base=(await store.get('estudio:'+dk))||[];
   const arr=base.concat(add); arr.sort((a,b)=>((a.start?mins(a.start):1e9)-(b.start?mins(b.start):1e9)));
   await store.set('estudio:'+dk,arr); if(dk===TODAY) est=arr;
   await loadWeekEst();renderEst();await renderHoy();renderSemana();updateRing();renderPend();
+  track('task_scheduled',{method:'day_picker',fit:need>0?'partial':'full'});
   if(need>0) show('Ubiqu\u00e9 “'+p.text+'” el '+dayLabel(dk)+', pero no entr\u00f3 todo: sobr\u00f3 '+fmtHoras(Math.round(need/6)/10)+'. Prob\u00e1 otro d\u00eda o sum\u00e1 bloques de Estudio.');
   else show('Listo — “'+p.text+'” qued\u00f3 el '+dayLabel(dk)+' dentro de tus bloques de Estudio.');
 }
@@ -837,7 +850,7 @@ function renderVideos(){
         '</div>'+
       '</div>';
     card.querySelector('.vidtitle').addEventListener('change',e=>{v.title=e.target.value;store.set('videos',videos);});
-    card.querySelector('.vwatch').addEventListener('click',()=>{v.watched=!v.watched;store.set('videos',videos);renderVideos();});
+    card.querySelector('.vwatch').addEventListener('click',()=>{v.watched=!v.watched;if(v.watched)track('video_watch',{});store.set('videos',videos);renderVideos();});
     card.querySelector('.vpend').addEventListener('click',()=>{
       if(v.pid){pend=pend.filter(p=>p.id!==v.pid);v.pid=null;}
       else{const p={id:genId(),text:'Ver: '+(v.title||v.url),done:false,cat:'otro'};pend.unshift(p);v.pid=p.id;}
@@ -856,6 +869,7 @@ function addVideo(){
   if(!id){const ph=i.placeholder;i.value='';i.placeholder='Ese link no parece de YouTube…';setTimeout(()=>{i.placeholder=ph;},2200);return;}
   const url='https://www.youtube.com/watch?v='+id;
   const item={id:genId(),url,vid:id,title:'',watched:false,pid:null};
+  track('video_add',{});
   videos.unshift(item);i.value='';store.set('videos',videos);renderVideos();
   fetchTitle(url).then(t=>{if(t){item.title=t;store.set('videos',videos);renderVideos();}});
 }
@@ -892,6 +906,7 @@ function addLink(){
   const label=(n.value||'').trim(), url=normUrl(u.value);
   if(!label&&!url)return;
   links.unshift({id:genId(),label:label||url,url});
+  track('link_add',{});
   n.value='';u.value='';store.set('links',links);renderLinks();n.focus();
 }
 document.getElementById('linkadd').addEventListener('click',addLink);
@@ -948,10 +963,10 @@ function renderCal(){
     cells+='<div class="calcell'+(isToday?' today':'')+'" data-dk="'+dk+'"><span class="cnum">'+day+'</span>'+shown+'</div>';
   }
   v.innerHTML=head+wk+'<div class="calgrid">'+cells+'</div>';
-  document.getElementById('calPrev').addEventListener('click',()=>{ calM--; if(calM<0){calM=11;calY--;} renderCal(); });
-  document.getElementById('calNext').addEventListener('click',()=>{ calM++; if(calM>11){calM=0;calY++;} renderCal(); });
-  document.getElementById('calHoy').addEventListener('click',()=>{ calY=now.getFullYear(); calM=now.getMonth(); renderCal(); });
-  v.querySelectorAll('.calcell[data-dk]').forEach(c=>c.addEventListener('click',()=>{ calSel=c.dataset.dk; renderCal(); }));
+  document.getElementById('calPrev').addEventListener('click',()=>{ calM--; if(calM<0){calM=11;calY--;} track('calendar_month_nav',{dir:'prev'}); renderCal(); });
+  document.getElementById('calNext').addEventListener('click',()=>{ calM++; if(calM>11){calM=0;calY++;} track('calendar_month_nav',{dir:'next'}); renderCal(); });
+  document.getElementById('calHoy').addEventListener('click',()=>{ calY=now.getFullYear(); calM=now.getMonth(); track('calendar_month_nav',{dir:'today'}); renderCal(); });
+  v.querySelectorAll('.calcell[data-dk]').forEach(c=>c.addEventListener('click',()=>{ calSel=c.dataset.dk; track('calendar_day_open',{}); renderCal(); }));
 }
 function renderCalDay(v){
   const dk=calSel;
@@ -977,15 +992,15 @@ function renderCalDay(v){
   else tasks.forEach(p=>{
     const li=document.createElement('li'); if(p.done)li.classList.add('done');
     li.innerHTML=checkSVG()+'<span class="ptext">'+esc(p.text)+'</span><button class="del" title="Quitar del día" aria-label="Quitar del día">×</button>';
-    li.querySelector('.check').addEventListener('click',()=>{ setPendDone(p,!p.done); store.set('pendientes',pend); calRefresh(); });
+    li.querySelector('.check').addEventListener('click',()=>{ setPendDone(p,!p.done); if(p.done)track('task_complete',{source:'calendario'}); store.set('pendientes',pend); calRefresh(); });
     li.querySelector('.del').addEventListener('click',()=>{ delete p.date; store.set('pendientes',pend); calRefresh(); });
     ul.appendChild(li);
   });
-  const add=()=>{ const i=document.getElementById('calinput'); const t=i.value.trim(); if(!t)return; pend.unshift({id:genId(),text:t,done:false,cat:'otro',date:dk}); i.value=''; store.set('pendientes',pend); calRefresh(); };
+  const add=()=>{ const i=document.getElementById('calinput'); const t=i.value.trim(); if(!t)return; pend.unshift({id:genId(),text:t,done:false,cat:'otro',date:dk}); track('task_add',{category:'otro',scheduled:true}); i.value=''; store.set('pendientes',pend); calRefresh(); };
   document.getElementById('caladd').addEventListener('click',add);
   document.getElementById('calinput').addEventListener('keydown',e=>{ if(e.key==='Enter')add(); });
   const pick=document.getElementById('calpick');
-  if(pick)pick.addEventListener('change',()=>{ const p=pend.find(x=>x.id===pick.value); if(p){ p.date=dk; store.set('pendientes',pend); calRefresh(); } });
+  if(pick)pick.addEventListener('change',()=>{ const p=pend.find(x=>x.id===pick.value); if(p){ p.date=dk; track('task_scheduled',{method:'calendar',fit:'full'}); store.set('pendientes',pend); calRefresh(); } });
 }
 // refresca el calendario y todo lo que refleja una tarea con fecha
 function calRefresh(){ renderCal(); renderPend(); renderSemana(); renderHoy(); updateRing(); }
@@ -998,6 +1013,7 @@ document.querySelectorAll('nav.tabs button').forEach(btn=>{
     document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
     document.getElementById('panel-'+btn.dataset.tab).classList.add('on');
     updateDemoGuide(btn.dataset.tab);
+    track('tab_view',{tab:btn.dataset.tab});
     if(btn.dataset.tab==='semana'){document.getElementById('daydetail').hidden=true;document.getElementById('weekgrid').hidden=false;renderSemana();loadWeekEst().then(renderSemana);}
     if(btn.dataset.tab==='cal'){calSel=null;renderCal();}
   });
@@ -1027,6 +1043,7 @@ async function bootApp(){
   await renderHoy();renderSemana();renderGym();renderMaterias();renderCal();await loadVideos();await loadLinks();
   wireNote(document.getElementById('todaytag'),()=>dow);
   wireNote(document.getElementById('dnote'),()=>selectedDay);
+  track('tab_view',{tab:'hoy'});
   // link discreto para cerrar sesión (útil en dispositivos compartidos)
   if(sb&&sbUser){
     const f=document.querySelector('footer');
