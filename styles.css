@@ -251,6 +251,7 @@
   .facurow{margin-top:-8px;align-items:flex-end}
   .flbl{display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-dim)}
   .flbl select{font-family:var(--body);font-size:14px;text-transform:none;letter-spacing:0;color:var(--text)}
+  .pendday{flex:0 0 auto;font-size:12px;padding:6px 8px;max-width:130px}
 
   /* Materias */
   input[type=date]{background:var(--surface-2);border:1px solid var(--line);color:var(--text);font-family:var(--mono);font-size:13px;padding:9px 11px;border-radius:9px}

@@ -92,7 +92,7 @@ const DEMO_GUIDE={
   gym:['Tu rutina de gimnasio','Un bloque por día de entrenamiento. Editá nombres, series y repeticiones tocando cada campo; se guarda solo.'],
   videos:['Para ver después','Pegá links de YouTube y se guardan con miniatura. Cuando tengas un rato, entrás acá y tocás la miniatura para abrir el video.'],
   links:['Tus accesos rápidos','Guardá los links que usás siempre (Teams, Notion, la facu…). Poné nombre y dirección y quedan a un clic.'],
-  pend:['Sacate todo de la cabeza','Anotá lo pendiente y separá lo de la <b>facultad</b> de lo demás; a lo de facu le ponés materia y horas estimadas.','Lo que marcás hecho —acá, en Hoy o en Estudio— baja a <b>Realizado</b> con la fecha en que lo completaste.']
+  pend:['Sacate todo de la cabeza','Anotá lo pendiente y separá lo de la <b>facultad</b> de lo demás; a lo de facu le ponés materia y horas estimadas.','Con el <b>selector de día</b> de cada pendiente de facu lo mandás a un día puntual: la app lo mete solo en un hueco de estudio de ese día.','Lo que marcás hecho —acá, en Hoy o en Estudio— baja a <b>Realizado</b> con la fecha en que lo completaste.']
 };
 function buildDemoGuide(){
   if(document.getElementById('demoGuide')) return;
@@ -701,6 +701,10 @@ function refreshPendMatOptions(){
   if(cur)sel.value=cur;
 }
 async function loadPend(){pend=(await store.get('pendientes'))||[];pend.forEach(p=>{ if(!p.cat)p.cat='facu'; if(p.cat==='facu'){ if(!('matId'in p))p.matId=null; if(!('horas'in p))p.horas=1; } });updatePendCatUI();renderPend();}
+// dia de la semana (0-6) de una fecha YYYY-MM-DD
+function dkToDow(dk){ if(!dk)return -1; const [y,mo,da]=dk.split('-').map(Number); return new Date(y,mo-1,da).getDay(); }
+// donde/cuando quedo ubicado un pendiente en la semana (primer dia que lo tenga)
+function pendPlacement(pid){ for(let off=0;off<7;off++){ const dk=dowToDk[(dow+off)%7]; const it=(weekEst[dk]||[]).find(x=>x.pid===pid); if(it) return {dk,start:it.start||''}; } return null; }
 function pendItem(p){
   const li=document.createElement('li');if(p.done)li.classList.add('done');
   let meta='';
@@ -709,9 +713,18 @@ function pendItem(p){
     if(mat&&mat.name)meta+='<span class="mbadge">'+esc(mat.name)+'</span>';
     if(p.horas)meta+='<span class="hbadge">'+fmtHoras(p.horas)+'</span>';
   }
+  const place=(p.cat==='facu'&&!p.done)?pendPlacement(p.id):null;
+  if(place){ const lbl=place.dk===TODAY?'Hoy':DIAS[dkToDow(place.dk)].slice(0,3); meta+='<span class="eslot">→ '+lbl+(place.start?' '+place.start:'')+'</span>'; }
   if(p.done&&p.doneAt)meta+='<span class="dbadge">✓ '+fmtDkey(p.doneAt)+'</span>';
-  li.innerHTML=checkSVG()+'<span class="ptext">'+esc(p.text)+meta+'</span><button class="del" aria-label="Borrar">×</button>';
+  let dsel='';
+  if(p.cat==='facu'&&!p.done){
+    let opts='<option value="">— día —</option>';
+    for(let off=0;off<7;off++){ const dk=dowToDk[(dow+off)%7], lbl=off===0?'Hoy':DIAS[(dow+off)%7]; opts+='<option value="'+dk+'"'+(place&&place.dk===dk?' selected':'')+'>'+lbl+'</option>'; }
+    dsel='<select class="pendday" aria-label="Ubicar en un día">'+opts+'</select>';
+  }
+  li.innerHTML=checkSVG()+'<span class="ptext">'+esc(p.text)+meta+'</span>'+dsel+'<button class="del" aria-label="Borrar">×</button>';
   li.querySelector('.check').addEventListener('click',()=>{setPendDone(p,!p.done);store.set('pendientes',pend);renderPend();renderEst();});
+  const ds=li.querySelector('.pendday'); if(ds)ds.addEventListener('change',()=>ubicarPend(p,ds.value));
   li.querySelector('.del').addEventListener('click',()=>{pend=pend.filter(x=>x.id!==p.id);store.set('pendientes',pend);renderPend();renderEst();});
   return li;
 }
@@ -742,6 +755,37 @@ function addPend(){const i=document.getElementById('pendinput');const t=i.value.
   pend.unshift(item);i.value='';store.set('pendientes',pend);renderPend();}
 document.getElementById('pendadd').addEventListener('click',addPend);
 document.getElementById('pendinput').addEventListener('keydown',e=>{if(e.key==='Enter')addPend();});
+
+/* ---------- ubicar un pendiente en un dia a mano (dentro de los bloques de Estudio) ---------- */
+async function ubicarPend(p,dk){
+  const msg=document.getElementById('pendmsg');
+  const show=t=>{ if(msg){msg.textContent=t;msg.hidden=false;} };
+  const dayLabel=d=>{ const w=dkToDow(d); return d===TODAY?'hoy':DIAS[w].toLowerCase(); };
+  // des-ubicar: sacar toda ubicacion de esta tarea y salir
+  if(!dk){
+    for(let off=0;off<7;off++){ const d=dowToDk[(dow+off)%7]; const arr=(await store.get('estudio:'+d))||[]; const kept=arr.filter(x=>x.pid!==p.id); if(kept.length!==arr.length){ await store.set('estudio:'+d,kept); if(d===TODAY) est=kept; } }
+    await loadWeekEst();renderEst();await renderHoy();renderSemana();updateRing();renderPend();
+    show('Saqu\u00e9 “'+p.text+'” del horario de estudio.');
+    return;
+  }
+  const dw=dkToDow(dk);
+  if(!estudioSlots(dw).length){ show('El '+dayLabel(dk)+' no ten\u00e9s bloques de tipo Estudio en tu horario. Cargalos en “Hoy → + Agregar actividad fija” (categor\u00eda Estudio) y volv\u00e9 a elegir el d\u00eda.'); renderPend(); return; }
+  // calcular la ubicacion en el dia elegido (ignorando cualquier ubicacion previa de esta misma tarea)
+  const existing=(await store.get('estudio:'+dk))||[];
+  const occ=existing.filter(x=>x.pid!==p.id&&x.start&&x.end).map(x=>({s:mins(x.start),e:mins(x.end)}));
+  const free=subtractOccupied(estudioSlots(dw),occ);
+  let need=Math.max(15,Math.round((p.horas||1)*60)), first=true; const add=[];
+  for(const iv of free){ if(need<=0)break; const avail=iv.e-iv.s; if(avail<=0)continue; const take=Math.min(avail,need); add.push({id:genId(),text:p.text+(first?'':' (cont.)'),matId:p.matId||null,start:minsToHM(iv.s),end:minsToHM(iv.s+take),horas:take/60,done:false,pid:p.id}); need-=take; first=false; }
+  if(!add.length){ show('No pude ubicar “'+p.text+'”: el '+dayLabel(dk)+' no te queda hueco libre en los bloques de Estudio. Prob\u00e1 otro d\u00eda o sum\u00e1 tiempo de estudio.'); renderPend(); return; }
+  // confirmar el movimiento: sacar la tarea de toda la semana y escribirla en el dia elegido
+  for(let off=0;off<7;off++){ const d=dowToDk[(dow+off)%7]; const arr=(await store.get('estudio:'+d))||[]; const kept=arr.filter(x=>x.pid!==p.id); if(kept.length!==arr.length){ await store.set('estudio:'+d,kept); if(d===TODAY) est=kept; } }
+  const base=(await store.get('estudio:'+dk))||[];
+  const arr=base.concat(add); arr.sort((a,b)=>((a.start?mins(a.start):1e9)-(b.start?mins(b.start):1e9)));
+  await store.set('estudio:'+dk,arr); if(dk===TODAY) est=arr;
+  await loadWeekEst();renderEst();await renderHoy();renderSemana();updateRing();renderPend();
+  if(need>0) show('Ubiqu\u00e9 “'+p.text+'” el '+dayLabel(dk)+', pero no entr\u00f3 todo: sobr\u00f3 '+fmtHoras(Math.round(need/6)/10)+'. Prob\u00e1 otro d\u00eda o sum\u00e1 bloques de Estudio.');
+  else show('Listo — “'+p.text+'” qued\u00f3 el '+dayLabel(dk)+' dentro de tus bloques de Estudio.');
+}
 
 /* ---------- Videos (mirar después) ---------- */
 let videos=[];
@@ -870,7 +914,7 @@ async function bootApp(){
   gym=await store.get('gym'); if(!gym||!gym.days||!gym.days.length){gym=buildGym();await store.set('gym',gym);}
   notes=(await store.get('notes'))||{};
   materias=(await store.get('materias'))||[];
-  await loadPend();await loadEst();await loadWeekEst();
+  await loadPend();await loadEst();await loadWeekEst();renderPend();
   await renderHoy();renderSemana();renderGym();renderMaterias();await loadVideos();await loadLinks();
   wireNote(document.getElementById('todaytag'),()=>dow);
   wireNote(document.getElementById('dnote'),()=>selectedDay);
